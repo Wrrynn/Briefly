@@ -20,25 +20,7 @@ export default function HeroSection() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen bg-[#05051a] text-white flex flex-col overflow-hidden">
-
-      {/* Background */}
-      <div className="absolute inset-0 z-0">
-        <ColorBends
-          className="w-full h-full"
-          colors={["#0010f5"]}
-          rotation={-2}
-          speed={1}
-          scale={1}
-          frequency={1}
-          warpStrength={1}
-          mouseInfluence={1}
-          parallax={0.5}
-          noise={0.1}
-          transparent
-          autoRotate={1}
-        />
-      </div>
+    <div className="relative min-h-screen text-white flex flex-col overflow-hidden">    
 
       {/* Navbar */}
       <nav className="relative z-10 flex justify-center px-10 py-5">
