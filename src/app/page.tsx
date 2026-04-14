@@ -66,6 +66,9 @@ export default function Home() {
         <HeroSection />
 
         <div className="max-w-7xl mx-auto px-4 mt-8 pb-20">
+          <div>
+            <CategoryFilter/>
+          </div>
 
           <p className="text-sm text-gray-400 mt-6 mb-4">
             Menampilkan <span className="text-white font-bold">{filtered.length}</span> berita

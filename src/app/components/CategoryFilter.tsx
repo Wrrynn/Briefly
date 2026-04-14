@@ -11,16 +11,16 @@ const categories = [
 
 export default function CategoryFilter({ selected, setSelected }: any) {
   return (
-    <div className="flex flex-wrap gap-2 mt-3">
+    <div className="flex flex-wrap gap-3 mt-6">
       {categories.map((cat) => (
         <button
           key={cat}
           onClick={() => setSelected(cat)}
-          className={`px-3 py-1 rounded-full text-sm transition-all duration-300 ease-in-out
+          className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border backdrop-blur-sm px-4 py-1.5 ...
             ${
-             selected === cat
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+              selected === cat
+                ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                : "bg-white/[0.05] text-white/60 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/30"
             }`}
         >
           {cat}
