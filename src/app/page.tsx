@@ -7,7 +7,7 @@ import { newsData } from "./data/mockNews";
 import HeroSection from "./components/HeroSection";
 import dynamic from "next/dynamic";
 
-const ColorBends = dynamic(() => import("./components/ColorBends"), { ssr: false });
+//const ColorBends = dynamic(() => import("./components/ColorBends"), { ssr: false });
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -37,11 +37,11 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen w-full bg-[#05051a]">
-      {/* Background Section */}
+      {/* Background Section
       <div className="fixed inset-0 z-0 pointer-events-none">
         <ColorBends colors={["#0010f5"]} speed={0.5} />
         <div className="absolute inset-0 bg-black/40" />
-      </div>
+      </div> */}
 
       <div className="relative z-10 w-full">
         {/* Header/Hero Section */}
