@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useSpring,
-  AnimatePresence,
-} from "framer-motion";
-import ColorBends from "./ColorBends";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import RecentNews from "./RecentNews";
+
+interface HeroProps {
+  setQuery: (val: string) => void;
+  setCategory: (val: string) => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
+}
 
 const menuItems = [
   { label: "Semua", num: "01", link: "/#" },
@@ -18,247 +17,205 @@ const menuItems = [
   { label: "Ekonomi", num: "03", link: "/#" },
   { label: "Teknologi", num: "04", link: "/#" },
   { label: "Bisnis", num: "05", link: "/#" },
-  { label: "Kesehatan", num: "06", link: "/#" },
-  { label: "Olahraga", num: "07", link: "/#" },
+  { label: "Olahraga", num: "06", link: "/#" },
+  { label: "Kesehatan", num: "07", link: "/#" },
   { label: "Umum", num: "08", link: "/#" },
 ];
 
-export default function HeroSection() {
+const topTopics = [
+  { rank: 1, title: "Ketegangan Geopolitik Timur Tengah", sentiment: "Negatif", score: 75, category: "Politik" },
+  { rank: 2, title: "Suku Bunga BI Ditahan di 6%", sentiment: "Netral", score: 60, category: "Ekonomi" },
+  { rank: 3, title: "Peluncuran Chip AI Terbaru NVIDIA", sentiment: "Positif", score: 92, category: "Teknologi" },
+];
+
+export default function HeroSection({ setQuery, setCategory, isDarkMode, setIsDarkMode }: HeroProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
-
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001,
-  });
-
-  const titleOpacity = useTransform(smoothProgress, [0, 0.3], [1, 0]);
-  const titleScale = useTransform(smoothProgress, [0, 0.4], [1, 0.85]);
-  const titleZ = useTransform(smoothProgress, [0, 0.4], [30, 0]);
-  const titlePointerEvents = useTransform(smoothProgress, (val) =>
-    val < 0.3 ? "auto" : "none",
-  );
-
-  const newsOpacity = useTransform(smoothProgress, [0.2, 0.6], [0, 1]);
-  const newsScale = useTransform(smoothProgress, [0.2, 0.7], [1.15, 1]);
-  const newsZ = useTransform(smoothProgress, [0, 0.4], [0, 40]);
-  const newsPointerEvents = useTransform(smoothProgress, (val) =>
-    val > 0.4 ? "auto" : "none",
-  );
+  useEffect(() => setMounted(true), []);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-[250vh] text-white flex flex-col w-full"
-    >
-      <div className="sticky top-0 h-screen w-full flex flex-col overflow-hidden">
-        {/* 🔥 NAVBAR PREMIUM CINEMATIC RE-DESIGN */}
-        <nav className="relative z-[100] flex justify-center px-10 py-10">
-          <motion.div
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-            className="flex items-center justify-between gap-10 w-fit min-w-[550px] bg-white/[0.02] border border-white/5 rounded-full px-8 py-3.5 backdrop-blur-2xl transition-all duration-700 shadow-[0_0_50px_rgba(0,0,0,0.6)] group"
-          >
-            {/* Logo area - Minimalist elegant */}
-            <div className="flex items-center gap-3 text-xs font-light tracking-[0.4em] uppercase text-white hover:text-blue-300 transition-colors cursor-pointer">
-              <div className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></span>
-              </div>
-              <span className="relative top-[1px]">Compro</span>
+    <div className="w-full">
+      <div className="relative w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500 flex flex-col font-sans">
+        
+        {/* NAVBAR */}
+        <nav className="relative z-50 w-full px-8 py-8 lg:px-16 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-3 group outline-none">
+            <div className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
             </div>
+            <span className="text-sm font-black tracking-[0.3em] uppercase text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              Briefly
+            </span>
+          </Link>
 
-            {/* Links area - Airier typography */}
-            <div className="flex gap-10 items-center">
-              <Link
-                href="/"
-                className="relative text-[11px] font-light tracking-[0.3em] uppercase text-white/50 hover:text-white transition-all group/link"
-              >
-                Home
-                <span className="absolute -bottom-1.5 left-0 w-0 h-[1px] bg-blue-500 transition-all group-hover/link:w-full"></span>
-              </Link>
-              <div className="h-4 w-[1px] bg-white/5" />{" "}
-              {/* Ultra thin divider */}
+          <div className="flex items-center gap-8">
+            {mounted && (
               <button
-                onClick={() => setIsOpen(true)}
-                className="flex items-center gap-4 text-[11px] font-light tracking-[0.3em] uppercase text-white/50 hover:text-white transition-all group/menu"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-2.5 rounded-2xl bg-gray-200/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-90"
               >
-                {/* 🔥Hamburger with smooth flow animation */}
-                <div className="relative flex flex-col gap-[4px] w-5">
-                  <span className="block h-[1px] w-full bg-current transition-all" />
-                  <span className="block h-[1px] w-full bg-current transition-all group-hover/menu:w-2/3 origin-right" />
-                  <span className="absolute -bottom-1.5 left-0 w-0 h-[1px] bg-blue-500 transition-all group-hover/menu:w-full"></span>
-                </div>
-                <span className="relative top-[1px]">Menu</span>
+                {isDarkMode ? (
+                  <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                )}
               </button>
-            </div>
-          </motion.div>
+            )}
+
+            <button
+              onClick={() => setIsOpen(true)}
+              className="flex items-center gap-4 text-xs font-black tracking-[0.2em] uppercase hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95 group"
+            >
+              MENU
+              <div className="flex flex-col gap-[5px] w-6">
+                <span className="block h-[2px] w-full bg-gray-900 dark:bg-white transition-all" />
+                <span className="block h-[2px] w-full bg-gray-900 dark:bg-white transition-all scale-x-50 origin-right group-hover:scale-x-100" />
+              </div>
+            </button>
+          </div>
         </nav>
 
-        {/* 🔥 DRAWER RE-DESIGN (Cinematic & Elegant Style) */}
-        <AnimatePresence>
-          {isOpen && (
-            <>
-              {/* Background Overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsOpen(false)}
-                className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-md cursor-pointer"
-              />
+        {/* HERO CONTENT */}
+        <div className="flex-1 flex flex-col justify-center items-center px-8 py-12 lg:py-20 w-full max-w-7xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center w-full max-w-4xl">
+            <div className="mb-8">
+              <span className="inline-block py-2 px-5 rounded-full bg-blue-600/10 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-black tracking-[0.3em] uppercase">
+                AI Intelligence Platform
+              </span>
+            </div>
 
-              {/* Sidebar Menu */}
-              <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed top-0 right-0 h-full w-[380px] z-[120] flex flex-col bg-[#05051a]/95 border-l border-white/5 shadow-2xl backdrop-blur-2xl"
-              >
-                <div className="p-10 flex flex-col h-full">
-                  {/* Close Button */}
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="self-end w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-90"
-                  >
-                    <span className="text-white/60 text-sm font-light">✕</span>
-                  </button>
-
-                  {/* Menu Items */}
-                  <div className="mt-12">
-                    <p className="text-[10px] uppercase tracking-[0.5em] text-blue-500/60 font-bold mb-10 pl-1">
-                      Eksplorasi
-                    </p>
-
-                    <nav className="flex flex-col gap-1">
-                      {menuItems.map((item, i) => (
-                        <motion.div
-                          key={item.label}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 + 0.2 }}
-                        >
-                          <Link
-                            href={item.link}
-                            onClick={() => setIsOpen(false)}
-                            className="group flex items-center gap-6 py-3.5 transition-all outline-none"
-                          >
-                            {/* Index Number */}
-                            <span className="text-[10px] font-mono text-white/20 group-hover:text-blue-500/80 transition-colors duration-300 pt-1">
-                              {item.num}
-                            </span>
-
-                            {/* Menu Label */}
-                            <span className="text-2xl font-light tracking-tight text-white/80 group-hover:text-white group-hover:translate-x-3 transition-all duration-500 ease-out">
-                              {item.label}
-                            </span>
-
-                            {/* Hover Line Indicator */}
-                            <span className="h-[1px] w-0 bg-blue-500/40 group-hover:w-8 transition-all duration-500 ease-out" />
-                          </Link>
-                        </motion.div>
-                      ))}
-                    </nav>
-                  </div>
-
-                  {/* Footer Sidebar */}
-                  <div className="mt-auto pt-8 border-t border-white/5">
-                    <div className="flex flex-col gap-2">
-                      <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-medium">
-                        © 2026 COMPRO AI PLATFORM
-                      </p>
-                      <p className="text-[9px] text-white/10 font-light tracking-wider">
-                        Sentiment & Prediksi Dampak Masa Depan
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* HERO CONTENT AREA */}
-        <div className="relative z-10 flex flex-1 items-center justify-center w-full h-full overflow-hidden pb-10">
-          <motion.div
-            className="absolute flex flex-col items-center justify-center text-center px-6 w-full max-w-2xl"
-            style={{
-              opacity: titleOpacity,
-              scale: titleScale,
-              zIndex: titleZ,
-              pointerEvents: titlePointerEvents as any,
-            }}
-          >
-
-            <h1 className="text-5xl md:text-6xl font-bold leading-[1.15] tracking-tight max-w-3xl mb-12 drop-shadow-lg">
-              Berita Dunia <span className="text-white/40">Terkini</span> dengan
-              Sentimen AI
+            <h1 className="text-5xl md:text-8xl font-black leading-[1.05] tracking-tighter mb-12 text-gray-900 dark:text-white">
+              ANALISIS DUNIA <br/>
+              <span className="text-blue-600 dark:text-blue-500 italic">DALAM PERSPEKTIF AI.</span>
             </h1>
 
-  
-
-            <div className="flex gap-4 pb-10">
-              <button className="bg-white text-black rounded-full px-9 py-4 text-xs font-extrabold uppercase tracking-[0.2em] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all active:scale-95 shadow-xl">
-                Get Started
-              </button>
-              <button className="bg-white/5 backdrop-blur-md text-white/80 border border-white/10 rounded-full px-9 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/10 transition-all active:scale-95 shadow-lg">
-                Learn More
-              </button>
-            </div>
-
-            <div className="inline-flex items-center gap-3 bg-white/[0.04] border border-white/40 rounded-full px-5 py-2.5 text-xs text-white/50 mb-10 w-[500px] 
-                focus-within:border-white-500/60 focus-within:bg-white/[0.08] 
-                transition-all duration-500 backdrop-blur-sm group 
-                /* Efek Cahaya (Glow) */
-                shadow-[0_0_20px_rgba(255,255,255,0.05)] 
-                focus-within:shadow-[0_0_25px_rgba(59,130,246,0.3)]">
-                
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-white/30 group-focus-within:text-white-400 transition-colors duration-500"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-
+            <div className="relative max-w-2xl mx-auto mb-24 w-full">
+              <div className="flex items-center bg-white dark:bg-[#111111] border-2 border-gray-200 dark:border-white/5 rounded-[2.5rem] p-2 pl-10 shadow-xl shadow-gray-200/50 dark:shadow-none focus-within:border-blue-600 dark:focus-within:border-blue-500 transition-all duration-300">
                 <input
-                  placeholder="Cari analisis AI..."
-                  className="bg-transparent border-none outline-none text-left w-full placeholder:text-white/20 font-light tracking-wide text-white"
+                  type="text"
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Cari analisis sentimen..."
+                  className="w-full bg-transparent border-none outline-none py-5 text-gray-900 dark:text-white placeholder-gray-400 font-bold text-lg"
                 />
+                <div className="bg-blue-600 text-white p-5 rounded-full mr-1">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
+                  </svg>
+                </div>
+              </div>
             </div>
-
           </motion.div>
-          
 
-          {/* LAYER 2: RECENT NEWS */}
-          <motion.div
-            className="absolute w-full mt-16"
-            style={{
-              opacity: newsOpacity,
-              scale: newsScale,
-              zIndex: newsZ,
-              pointerEvents: newsPointerEvents as any,
-            }}
-          >
-            <RecentNews />
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full">
+            <div className="flex items-center gap-4 mb-10">
+              <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 tracking-[0.4em] uppercase">Trending Hari Ini</h3>
+              <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/5"></div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {topTopics.map((topic, index) => (
+                <button 
+                  key={index}
+                  onClick={() => {
+                    setCategory(topic.category);
+                    document.getElementById("news-content")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="group relative p-8 bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-[2rem] text-left hover:border-blue-600 dark:hover:border-blue-500 transition-all duration-500 hover:shadow-2xl shadow-gray-100 dark:shadow-none hover:-translate-y-2 flex flex-col h-full"
+                >
+                  <div className="flex justify-between items-start mb-8">
+                    <span className="text-[10px] font-black px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg uppercase">#{topic.rank}</span>
+                    <div className="text-right">
+                      <p className={`text-[11px] font-black uppercase tracking-widest mb-1 ${topic.sentiment === 'Positif' ? 'text-emerald-600' : topic.sentiment === 'Negatif' ? 'text-rose-600' : 'text-blue-600'}`}>
+                        {topic.sentiment}
+                      </p>
+                      <p className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">{topic.score}%</p>
+                    </div>
+                  </div>
+                  <div className="mt-auto">
+                    <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] mb-3">{topic.category}</p>
+                    <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-[1.3] group-hover:text-blue-600 transition-colors">{topic.title}</h4>
+                  </div>
+                </button>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
+
+      {/* DRAWER MENU */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)} 
+              className="fixed inset-0 z-[100] bg-gray-900/60 dark:bg-black/80 backdrop-blur-md cursor-pointer" 
+            />
+            
+            <motion.div 
+              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} 
+              transition={{ type: "spring", damping: 30, stiffness: 250 }}
+              className="fixed top-0 right-0 h-full w-full sm:w-[480px] z-[110] flex flex-col bg-white dark:bg-[#07071a] border-l border-gray-200 dark:border-white/10 shadow-2xl"
+            >
+              <div className="p-10 flex flex-col h-full">
+                <button 
+                  onClick={() => setIsOpen(false)} 
+                  className="self-end p-4 bg-gray-100 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-2xl transition-all active:scale-90"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <div className="mt-10 overflow-y-auto pr-4 flex-1 custom-scrollbar">
+                  <p className="text-[11px] uppercase tracking-[0.5em] text-gray-400 font-black mb-10">NAVIGASI</p>
+                  
+                  <nav className="flex flex-col gap-6 pb-10">
+                    {menuItems.map((item, i) => (
+                      <motion.div 
+                        key={item.label} 
+                        initial={{ opacity: 0, x: 30 }} 
+                        animate={{ opacity: 1, x: 0 }} 
+                        transition={{ delay: i * 0.04 + 0.1 }}
+                      >
+                        <button 
+                          onClick={() => {
+                            setCategory(item.label); 
+                            setIsOpen(false); 
+                            setTimeout(() => {
+                              document.getElementById("news-content")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 300);
+                          }} 
+                          className="flex items-baseline gap-6 group w-full text-left outline-none"
+                        >
+                          <span className="text-xs font-mono text-blue-600 dark:text-blue-500 font-black opacity-50">
+                            {item.num}
+                          </span>
+                          <span className="text-3xl md:text-5xl font-black tracking-tighter text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all group-hover:translate-x-4 uppercase italic">
+                            {item.label}
+                          </span>
+                        </button>
+                      </motion.div>
+                    ))}
+                  </nav>
+                </div>
+
+                <div className="mt-auto border-t border-gray-100 dark:border-white/5 pt-8">
+                   <p className="text-[10px] font-black text-gray-400 tracking-[0.3em] uppercase">
+                     © 2026 Briefly AI PLATFORM
+                   </p>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
