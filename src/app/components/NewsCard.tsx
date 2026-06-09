@@ -3,13 +3,6 @@
 import Link from "next/link";
 
 export default function NewsCard({ data }: any) {
-  // Styling disesuaikan agar cocok dijejerkan bertiga (lebih transparan tapi tetap neon)
-  const sentimentStyles: { [key: string]: string } = {
-    Positif: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-    Negatif: "bg-rose-500/10 text-rose-400 border-rose-500/30",
-    Netral: "bg-blue-500/10 text-blue-400 border-blue-500/30",
-  };
-
   return (
     <div className="group relative bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden transition-all duration-300 hover:border-white/20 hover:-translate-y-1 shadow-2xl">
       {/* Bagian Konten */}
@@ -35,23 +28,6 @@ export default function NewsCard({ data }: any) {
         </p>
 
         <div className="flex flex-col gap-4 pt-5 border-t border-white/10">
-
-          {/* 3 Sentimen & Persentase */}
-          <div className="flex gap-2">
-            {data.sentiments?.map((sent: any, index: number) => (
-              <div
-                key={index}
-                className={`flex-1 flex justify-between items-center px-2 py-1.5 rounded-md border ${sentimentStyles[sent.type] || sentimentStyles.Netral}`}
-              >
-                <span className="text-[8px] font-black uppercase tracking-wider">
-                  {sent.type}
-                </span>
-                <span className="text-[10px] font-mono font-bold">
-                  {sent.percentage}%
-                </span>
-              </div>
-            ))}
-          </div>
 
           {/* Dampak & Persentase */}
           <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,11 +10,9 @@ import NewsContent from "@/app/components/detail/NewsContent";
 import LoadingSkeleton, {
   SidebarSkeleton,
 } from "@/app/components/detail/LoadingSkeleton";
-import type { AIAnalysisResult } from "@/app/api/analyze-news/route";
 import type { NewsItem } from "@/app/data/mockNews";
 
-type EnrichedNews = NewsItem &
-  Partial<AIAnalysisResult> & { aiLoading?: boolean; aiError?: boolean; url?: string };
+type EnrichedNews = NewsItem & { aiLoading?: boolean; aiError?: boolean; url?: string; isAnalyzed?: boolean };
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -69,7 +67,7 @@ export default function NewsDetailPage() {
       })
       .then((json) => {
         if (json.data) {
-          setNews({ ...json.data, aiLoading: true });
+          setNews({ ...json.data, aiLoading: false });
         } else {
           setNotFound(true);
         }
@@ -89,56 +87,6 @@ export default function NewsDetailPage() {
       })
       .catch(() => {});
   }, []);
-
-  // === AI ANALYSIS via Anthropic ===
-  const fetchAIAnalysis = useCallback(async (item: EnrichedNews) => {
-    try {
-      const res = await fetch("/api/analyze-news", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: item.title,
-          description: item.description,
-          fullContent: item.fullContent,
-          category: item.category,
-          source: item.source,
-        }),
-      });
-      if (!res.ok) throw new Error("API error");
-      const analysis: AIAnalysisResult = await res.json();
-      setNews((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...analysis,
-              sentiment: analysis.sentiment,
-              confidenceScore: analysis.confidenceScore,
-              aiSummary: analysis.aiSummary,
-              keywords: analysis.keywords,
-              impacts:
-                analysis.impactAnalysis && analysis.impactAnalysis.length > 0
-                  ? analysis.impactAnalysis.map((name: string) => ({
-                      name,
-                      percentage: 0,
-                    }))
-                  : prev.impacts,
-              aiLoading: false,
-              aiError: false,
-            }
-          : prev,
-      );
-    } catch {
-      setNews((prev) =>
-        prev ? { ...prev, aiLoading: false, aiError: true } : prev,
-      );
-    }
-  }, []);
-
-  useEffect(() => {
-    if (news && news.aiLoading && !news.aiError) {
-      fetchAIAnalysis(news);
-    }
-  }, [news?.aiLoading, fetchAIAnalysis]);
 
   // === 404 ===
   if (!loading && notFound) {
@@ -290,7 +238,7 @@ export default function NewsDetailPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
                     >
-                      <AIInsightSidebar news={news} isLive={!news.aiError} />
+                      <AIInsightSidebar news={news} isLive={!!news.isAnalyzed} />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -454,41 +402,66 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
         )}
       </div>
 
-      {/* Confidence Score */}
-      <div className="mb-8 relative z-10">
-        <div className="flex justify-between items-end mb-3">
-          <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase">
-            Confidence Score
+      {/* Prediksi Sektor (1–4 Minggu) */}
+      {news.sektorPredictions && news.sektorPredictions.length > 0 && (
+        <div className="mb-8 relative z-10">
+          <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase mb-5">
+            Prediksi Sektor · 1–4 Minggu
           </h4>
-          <span className="text-[15px] font-black text-blue-600 dark:text-blue-400">
-            {news.confidenceScore || 0}%
-          </span>
+          <div className="flex flex-col gap-4">
+            {news.sektorPredictions.map((sek, idx) => {
+              const risk = (sek.tingkat_risiko || "").toLowerCase();
+              const riskStyle = risk.includes("tinggi")
+                ? "text-rose-700 bg-rose-100 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/25"
+                : risk.includes("sedang")
+                  ? "text-amber-700 bg-amber-100 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/25"
+                  : "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/25";
+              return (
+                <div key={idx} className="p-5 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02]">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="text-[13px] font-black text-gray-900 dark:text-white/90">
+                      {sek.nama_sektor}
+                    </span>
+                    <span className={`text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-md border whitespace-nowrap ${riskStyle}`}>
+                      Risiko {sek.tingkat_risiko}
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-gray-700 dark:text-white/70 leading-relaxed font-medium">
+                    {sek.prediksi_dampak}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="h-2.5 w-full bg-gray-200 dark:bg-white/[0.05] rounded-full overflow-hidden mb-2">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${news.confidenceScore || 0}%` }}
-            transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-            className="h-full bg-blue-600 dark:bg-blue-500 rounded-full"
-          />
-        </div>
-        <p className="text-[11px] text-gray-500 dark:text-white/40 font-medium mt-2">
-          Tingkat keyakinan model AI terhadap analisis ini
-        </p>
-      </div>
+      )}
 
-      {/* Tombol Sumber Asli */}
-      <a
-        href={news.url || "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-auto relative z-10 w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-black text-[12px] font-black uppercase tracking-[0.2em] rounded-xl text-center hover:bg-black dark:hover:bg-gray-200 transition-colors flex justify-center items-center gap-2"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-        Baca Sumber Asli
-      </a>
+      {/* Sumber Berita (bisa lebih dari satu sesuai data) */}
+      <div className="mt-auto relative z-10">
+        <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase mb-3">
+          Sumber Berita
+          {news.sources && news.sources.length > 1 ? ` (${news.sources.length})` : ""}
+        </h4>
+        <div className="flex flex-col gap-2">
+          {(news.sources && news.sources.length > 0
+            ? news.sources
+            : [{ portal: news.source, url: news.url || "#" }]
+          ).map((src, idx) => (
+            <a
+              key={idx}
+              href={src.url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-black text-[11px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-black dark:hover:bg-gray-200 transition-colors flex justify-between items-center gap-2"
+            >
+              <span className="truncate">{src.portal}</span>
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

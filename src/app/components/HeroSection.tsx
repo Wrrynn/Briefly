@@ -1,28 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 
 interface HeroProps {
   setQuery: (val: string) => void;
-  setCategory: (val: string) => void;
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
   trendingNews?: any[];
   loadingTrending?: boolean;
 }
-
-const menuItems = [
-  { label: "Semua", num: "01", link: "/#" },
-  { label: "Politik", num: "02", link: "/#" },
-  { label: "Ekonomi", num: "03", link: "/#" },
-  { label: "Teknologi", num: "04", link: "/#" },
-  { label: "Bisnis", num: "05", link: "/#" },
-  { label: "Olahraga", num: "06", link: "/#" },
-  { label: "Kesehatan", num: "07", link: "/#" },
-  { label: "Umum", num: "08", link: "/#" },
-];
 
 function getDominantSentiment(sentiments: any[]) {
   if (!sentiments?.length) return { type: "Netral" as const, percentage: 50 };
@@ -31,8 +19,7 @@ function getDominantSentiment(sentiments: any[]) {
   );
 }
 
-export default function HeroSection({ setQuery, setCategory, isDarkMode, setIsDarkMode, trendingNews, loadingTrending }: HeroProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trendingNews, loadingTrending }: HeroProps) {
   const [mounted, setMounted] = useState(false);
 
   const topTopics = (trendingNews || []).slice(0, 3).map((item, index) => {
@@ -52,7 +39,7 @@ export default function HeroSection({ setQuery, setCategory, isDarkMode, setIsDa
   return (
     <div className="w-full">
       <div className="relative w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500 flex flex-col font-sans">
-        
+
         {/* NAVBAR */}
         <nav className="relative z-50 w-full px-8 py-8 lg:px-16 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-3 group outline-none">
@@ -65,35 +52,22 @@ export default function HeroSection({ setQuery, setCategory, isDarkMode, setIsDa
             </span>
           </Link>
 
-          <div className="flex items-center gap-8">
-            {mounted && (
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="p-2.5 rounded-2xl bg-gray-200/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-90"
-              >
-                {isDarkMode ? (
-                  <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                  </svg>
-                )}
-              </button>
-            )}
-
+          {mounted && (
             <button
-              onClick={() => setIsOpen(true)}
-              className="flex items-center gap-4 text-xs font-black tracking-[0.2em] uppercase hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95 group"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2.5 rounded-2xl bg-gray-200/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-90"
             >
-              MENU
-              <div className="flex flex-col gap-[5px] w-6">
-                <span className="block h-[2px] w-full bg-gray-900 dark:bg-white transition-all" />
-                <span className="block h-[2px] w-full bg-gray-900 dark:bg-white transition-all scale-x-50 origin-right group-hover:scale-x-100" />
-              </div>
+              {isDarkMode ? (
+                <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
             </button>
-          </div>
+          )}
         </nav>
 
         {/* HERO CONTENT */}
@@ -106,7 +80,7 @@ export default function HeroSection({ setQuery, setCategory, isDarkMode, setIsDa
             </div>
 
             <h1 className="text-5xl md:text-8xl font-black leading-[1.05] tracking-tighter mb-12 text-gray-900 dark:text-white">
-              ANALISIS DUNIA <br/>
+              ANALISIS INDONESIA <br/>
               <span className="text-blue-600 dark:text-blue-500 italic">DALAM PERSPEKTIF AI.</span>
             </h1>
 
@@ -182,75 +156,6 @@ export default function HeroSection({ setQuery, setCategory, isDarkMode, setIsDa
           </motion.div>
         </div>
       </div>
-
-      {/* DRAWER MENU */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)} 
-              className="fixed inset-0 z-[100] bg-gray-900/60 dark:bg-black/80 backdrop-blur-md cursor-pointer" 
-            />
-            
-            <motion.div 
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} 
-              transition={{ type: "spring", damping: 30, stiffness: 250 }}
-              className="fixed top-0 right-0 h-full w-full sm:w-[480px] z-[110] flex flex-col bg-white dark:bg-[#07071a] border-l border-gray-200 dark:border-white/10 shadow-2xl"
-            >
-              <div className="p-10 flex flex-col h-full">
-                <button 
-                  onClick={() => setIsOpen(false)} 
-                  className="self-end p-4 bg-gray-100 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-2xl transition-all active:scale-90"
-                >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-
-                <div className="mt-10 overflow-y-auto pr-4 flex-1 custom-scrollbar">
-                  <p className="text-[11px] uppercase tracking-[0.5em] text-gray-400 font-black mb-10">NAVIGASI</p>
-                  
-                  <nav className="flex flex-col gap-6 pb-10">
-                    {menuItems.map((item, i) => (
-                      <motion.div 
-                        key={item.label} 
-                        initial={{ opacity: 0, x: 30 }} 
-                        animate={{ opacity: 1, x: 0 }} 
-                        transition={{ delay: i * 0.04 + 0.1 }}
-                      >
-                        <button 
-                          onClick={() => {
-                            setCategory(item.label); 
-                            setIsOpen(false); 
-                            setTimeout(() => {
-                              document.getElementById("news-content")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                            }, 300);
-                          }} 
-                          className="flex items-baseline gap-6 group w-full text-left outline-none"
-                        >
-                          <span className="text-xs font-mono text-blue-600 dark:text-blue-500 font-black opacity-50">
-                            {item.num}
-                          </span>
-                          <span className="text-3xl md:text-5xl font-black tracking-tighter text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all group-hover:translate-x-4 uppercase italic">
-                            {item.label}
-                          </span>
-                        </button>
-                      </motion.div>
-                    ))}
-                  </nav>
-                </div>
-
-                <div className="mt-auto border-t border-gray-100 dark:border-white/5 pt-8">
-                   <p className="text-[10px] font-black text-gray-400 tracking-[0.3em] uppercase">
-                     © 2026 Briefly AI PLATFORM
-                   </p>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

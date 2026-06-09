@@ -10,13 +10,16 @@ interface CategoryFilterProps {
 
 const categories = [
   "Semua",
-  "Politik",
-  "Ekonomi",
-  "Teknologi",
-  "Bisnis",
+  "Ekonomi & Bisnis",
+  "Politik & Pemerintahan",
+  "Hukum & Keamanan",
+  "Sosial & Masyarakat",
   "Kesehatan",
-  "Olahraga",
-  "Umum",
+  "Pendidikan",
+  "Energi & Lingkungan",
+  "Teknologi",
+  "Olahraga & Hiburan",
+  "Hubungan Internasional"
 ];
 
 export default function CategoryFilter({ selected, setSelected }: CategoryFilterProps) {

@@ -8,23 +8,14 @@ export default function NewsHeader({ news }: { news: NewsItem }) {
           {news.category}
         </span>
         <span className="text-[11px] text-gray-500 dark:text-white/40 font-semibold tracking-wider transition-colors">
-          {news.readTime} menit baca
-        </span>
-        <span className="text-gray-300 dark:text-white/20">•</span>
-        <span className="text-[11px] text-gray-500 dark:text-white/40 font-semibold tracking-wider transition-colors">
           {news.time}
         </span>
       </div>
 
       {/* Teks diubah jadi text-gray-900 (Hitam pekat) di mode terang */}
-      <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-gray-900 dark:text-white mb-6 transition-colors duration-500">
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-gray-900 dark:text-white transition-colors duration-500">
         {news.title}
       </h1>
-
-      {/* Deskripsi diubah jadi text-gray-700 di mode terang */}
-      <p className="text-lg md:text-xl text-gray-700 dark:text-white/60 leading-relaxed font-medium transition-colors duration-500">
-        {news.description}
-      </p>
     </div>
   );
 }

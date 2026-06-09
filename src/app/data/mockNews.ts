@@ -10,6 +10,8 @@ export interface NewsItem {
   }[];
   impacts: { name: string; percentage: number }[];
   source: string;
+  sources?: { portal: string; url: string }[];
+  sektorPredictions?: { nama_sektor: string; prediksi_dampak: string; tingkat_risiko: string }[];
   time: string;
   image: string;
   author?: string;
