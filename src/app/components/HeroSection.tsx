@@ -135,10 +135,9 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                     <div className="flex justify-between items-start mb-8">
                       <span className="text-[10px] font-black px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg uppercase">#{topic.rank}</span>
                       <div className="text-right">
-                        <p className={`text-[11px] font-black uppercase tracking-widest mb-1 ${topic.sentiment === 'Positif' ? 'text-emerald-600' : topic.sentiment === 'Negatif' ? 'text-rose-600' : 'text-blue-600'}`}>
+                        <p className={`text-[11px] font-black uppercase tracking-widest ${topic.sentiment === 'Positif' ? 'text-emerald-600' : topic.sentiment === 'Negatif' ? 'text-rose-600' : 'text-blue-600'}`}>
                           {topic.sentiment}
                         </p>
-                        <p className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">{topic.score}%</p>
                       </div>
                     </div>
                     <div className="mt-auto">

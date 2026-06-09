@@ -27,23 +27,6 @@ export default function NewsCard({ data }: any) {
           {data.description}
         </p>
 
-        <div className="flex flex-col gap-4 pt-5 border-t border-white/10">
-
-          {/* Dampak & Persentase */}
-          <div className="flex flex-wrap gap-2">
-            {data.impacts?.map((imp: any, i: number) => (
-              <span
-                key={i}
-                className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 text-[9px] font-bold px-2.5 py-1 rounded uppercase tracking-tighter"
-              >
-                <span>{imp.name}</span>
-                <span className="text-white/80 font-mono">{imp.percentage}%</span>
-              </span>
-            ))}
-          </div>
-
-        </div>
-
         <Link
           href={`/news/${data.id}`}
           className="block w-full mt-7 py-3.5 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-[0.25em] hover:bg-gray-200 transition-all duration-300 active:scale-95 text-center"

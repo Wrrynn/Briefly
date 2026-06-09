@@ -27,6 +27,26 @@ export async function GET(request: NextRequest) {
   );
   // Irisan: cluster yang punya sentimen DAN sektor
   const analyzedClusterIds = [...sentSet].filter((id) => sektorSet.has(id));
+  const clusterFilter = analyzedClusterIds.length > 0 ? analyzedClusterIds : [-1];
+
+  // 0b. Ambil HANYA berita dari hari terakhir yang diupdate (tanggal created_at
+  //     paling baru di antara berita teranalisis). Dinamis — ikut hari terbaru.
+  const { data: newestRow } = await supabase
+    .from("tabel_berita")
+    .select("created_at")
+    .in("id_cluster", clusterFilter)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  let dayStart: string | null = null;
+  let dayEnd: string | null = null;
+  const newestCreated = newestRow?.[0]?.created_at;
+  if (newestCreated) {
+    dayStart = newestCreated.slice(0, 10); // "YYYY-MM-DD" (awal hari)
+    const next = new Date(`${dayStart}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    dayEnd = next.toISOString().slice(0, 10); // hari berikutnya (eksklusif)
+  }
 
   // 1. Inisialisasi basis query utama
   let dbQuery = supabase
@@ -54,7 +74,12 @@ export async function GET(request: NextRequest) {
     `,
     { count: 'exact' }
     )
-    .in("id_cluster", analyzedClusterIds.length > 0 ? analyzedClusterIds : [-1]);
+    .in("id_cluster", clusterFilter);
+
+  // Batasi ke hari terakhir yang diupdate
+  if (dayStart && dayEnd) {
+    dbQuery = dbQuery.gte("created_at", dayStart).lt("created_at", dayEnd);
+  }
 
   // A. Eksekusi filter pencarian kata kunci jika user mengetik sesuatu
   if (searchQuery.trim() !== "") {
