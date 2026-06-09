@@ -114,8 +114,8 @@ export default function Home() {
               <CategoryFilter selected={category} setSelected={handleCategoryChange} />
             </div>
 
-            <div className="flex items-center justify-between mb-8">
-              <p className="text-sm text-gray-400 dark:text-white/50 uppercase tracking-[0.2em] font-bold">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
+              <p className="text-xs sm:text-sm text-gray-400 dark:text-white/50 uppercase tracking-[0.15em] sm:tracking-[0.2em] font-bold">
                 Menampilkan{" "}
                 <span className="text-blue-600 dark:text-white">
                   {totalNewsCount === 0
@@ -132,7 +132,7 @@ export default function Home() {
                 berita
               </p>
               {totalNewsCount > 0 && totalPages > 1 && (
-                <p className="text-sm text-gray-400 dark:text-white/30 uppercase tracking-[0.15em] font-bold">
+                <p className="text-xs sm:text-sm text-gray-400 dark:text-white/30 uppercase tracking-[0.15em] font-bold">
                   Hal. {currentPage} / {totalPages}
                 </p>
               )}
@@ -187,19 +187,24 @@ export default function Home() {
                 </div>
 
                 {totalNewsCount > 0 && totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-3 mt-16">
+                  <div className="flex justify-center items-center gap-2 sm:gap-3 mt-16">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:border-blue-600 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
+                      className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:border-blue-600 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                       </svg>
-                      Sebelumnya
+                      <span className="hidden sm:inline">Sebelumnya</span>
                     </button>
 
-                    <div className="flex items-center gap-2">
+                    {/* Indikator halaman ringkas untuk mobile */}
+                    <span className="sm:hidden text-[11px] font-black text-gray-600 dark:text-white/60 uppercase tracking-[0.15em] px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+
+                    <div className="hidden sm:flex items-center gap-2">
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNo) => {
                         const isActive = pageNo === currentPage;
                         const isNear =
@@ -240,9 +245,9 @@ export default function Home() {
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage >= totalPages}
-                      className="flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:border-blue-600 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
+                      className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 hover:border-blue-600 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300"
                     >
-                      Selanjutnya
+                      <span className="hidden sm:inline">Selanjutnya</span>
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>

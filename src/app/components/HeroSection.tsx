@@ -55,7 +55,7 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
       <div className="relative w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500 flex flex-col font-sans">
 
         {/* NAVBAR */}
-        <nav className="relative z-50 w-full px-8 py-8 lg:px-16 flex justify-between items-center">
+        <nav className="relative z-50 w-full px-5 sm:px-8 py-6 sm:py-8 lg:px-16 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-3 group outline-none">
             <div className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
@@ -85,7 +85,9 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
         </nav>
 
         {/* HERO CONTENT */}
-        <div className="flex-1 flex flex-col justify-center items-center px-8 py-12 lg:py-20 w-full max-w-7xl mx-auto">
+        <div className="px-5 sm:px-8 w-full max-w-7xl mx-auto">
+          {/* Hero mengisi layar pertama; trending ada di bawah (perlu scroll) */}
+          <div className="min-h-[calc(100svh-96px)] flex flex-col justify-center items-center py-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center w-full max-w-4xl">
             <div className="mb-8">
               <span className="inline-block py-2 px-5 rounded-full bg-blue-600/10 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-black tracking-[0.3em] uppercase">
@@ -93,20 +95,20 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-8xl font-black leading-[1.05] tracking-tighter mb-12 text-gray-900 dark:text-white">
+            <h1 className="text-4xl sm:text-6xl md:text-6xl font-black leading-[1.05] tracking-tighter mb-8 sm:mb-12 text-gray-900 dark:text-white">
               ANALISIS INDONESIA <br/>
               <span className="text-blue-600 dark:text-blue-500 italic">DALAM PERSPEKTIF AI.</span>
             </h1>
 
-            <div className="relative max-w-2xl mx-auto mb-24 w-full">
-              <div className="group flex items-center bg-white dark:bg-[#111111] border-2 border-gray-200 dark:border-white/5 rounded-[2.5rem] p-2 pl-10 shadow-xl shadow-gray-200/50 dark:shadow-none hover:border-blue-400 dark:hover:border-blue-500/40 hover:shadow-2xl hover:shadow-blue-200/40 dark:hover:shadow-[0_0_40px_rgba(59,130,246,0.15)] focus-within:border-blue-600 dark:focus-within:border-blue-500 -translate-y-0 hover:-translate-y-0.5 transition-all duration-300">
+            <div className="relative max-w-2xl mx-auto mb-16 sm:mb-20 w-full">
+              <div className="group flex items-center bg-white dark:bg-[#111111] border-2 border-gray-200 dark:border-white/5 rounded-[2.5rem] p-2 pl-6 sm:pl-10 shadow-xl shadow-gray-200/50 dark:shadow-none hover:border-blue-400 dark:hover:border-blue-500/40 hover:shadow-2xl hover:shadow-blue-200/40 dark:hover:shadow-[0_0_40px_rgba(59,130,246,0.15)] focus-within:border-blue-600 dark:focus-within:border-blue-500 -translate-y-0 hover:-translate-y-0.5 transition-all duration-300">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") submitSearch(); }}
                   placeholder="Cari analisis sentimen..."
-                  className="w-full bg-transparent border-none outline-none py-5 text-gray-900 dark:text-white placeholder-gray-400 font-bold text-lg"
+                  className="w-full bg-transparent border-none outline-none py-4 sm:py-5 text-gray-900 dark:text-white placeholder-gray-400 font-bold text-base sm:text-lg"
                 />
                 {searchActive && (
                   <button
@@ -122,18 +124,19 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                 <button
                   onClick={submitSearch}
                   aria-label="Cari"
-                  className="bg-blue-600 text-white p-5 rounded-full mr-1 transition-all duration-300 group-hover:bg-blue-700 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/40 active:scale-95"
+                  className="bg-blue-600 text-white p-4 sm:p-5 rounded-full mr-1 transition-all duration-300 group-hover:bg-blue-700 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/40 active:scale-95"
                 >
-                  <svg className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
                   </svg>
                 </button>
               </div>
             </div>
           </motion.div>
+          </div>
 
           {!searchActive && (
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full pb-20 lg:pb-28">
             <div className="flex items-center gap-4 mb-10">
               <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 tracking-[0.4em] uppercase">Trending Hari Ini</h3>
               <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/5"></div>
