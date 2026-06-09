@@ -10,6 +10,7 @@ interface HeroProps {
   setIsDarkMode: (val: boolean) => void;
   trendingNews?: any[];
   loadingTrending?: boolean;
+  searchActive?: boolean;
 }
 
 function getDominantSentiment(sentiments: any[]) {
@@ -19,8 +20,21 @@ function getDominantSentiment(sentiments: any[]) {
   );
 }
 
-export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trendingNews, loadingTrending }: HeroProps) {
+export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trendingNews, loadingTrending, searchActive }: HeroProps) {
   const [mounted, setMounted] = useState(false);
+  const [input, setInput] = useState("");
+
+  const submitSearch = () => {
+    setQuery(input.trim());
+    setTimeout(() => {
+      document.getElementById("news-content")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const clearSearch = () => {
+    setInput("");
+    setQuery("");
+  };
 
   const topTopics = (trendingNews || []).slice(0, 3).map((item, index) => {
     const dominant = getDominantSentiment(item.sentiments || []);
@@ -85,22 +99,40 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
             </h1>
 
             <div className="relative max-w-2xl mx-auto mb-24 w-full">
-              <div className="flex items-center bg-white dark:bg-[#111111] border-2 border-gray-200 dark:border-white/5 rounded-[2.5rem] p-2 pl-10 shadow-xl shadow-gray-200/50 dark:shadow-none focus-within:border-blue-600 dark:focus-within:border-blue-500 transition-all duration-300">
+              <div className="group flex items-center bg-white dark:bg-[#111111] border-2 border-gray-200 dark:border-white/5 rounded-[2.5rem] p-2 pl-10 shadow-xl shadow-gray-200/50 dark:shadow-none hover:border-blue-400 dark:hover:border-blue-500/40 hover:shadow-2xl hover:shadow-blue-200/40 dark:hover:shadow-[0_0_40px_rgba(59,130,246,0.15)] focus-within:border-blue-600 dark:focus-within:border-blue-500 -translate-y-0 hover:-translate-y-0.5 transition-all duration-300">
                 <input
                   type="text"
-                  onChange={(e) => setQuery(e.target.value)}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitSearch(); }}
                   placeholder="Cari analisis sentimen..."
                   className="w-full bg-transparent border-none outline-none py-5 text-gray-900 dark:text-white placeholder-gray-400 font-bold text-lg"
                 />
-                <div className="bg-blue-600 text-white p-5 rounded-full mr-1">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                {searchActive && (
+                  <button
+                    onClick={clearSearch}
+                    aria-label="Bersihkan pencarian"
+                    className="mr-2 p-2.5 rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-all active:scale-90"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+                <button
+                  onClick={submitSearch}
+                  aria-label="Cari"
+                  className="bg-blue-600 text-white p-5 rounded-full mr-1 transition-all duration-300 group-hover:bg-blue-700 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/40 active:scale-95"
+                >
+                  <svg className="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
                   </svg>
-                </div>
+                </button>
               </div>
             </div>
           </motion.div>
 
+          {!searchActive && (
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full">
             <div className="flex items-center gap-4 mb-10">
               <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 tracking-[0.4em] uppercase">Trending Hari Ini</h3>
@@ -153,6 +185,7 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
               )}
             </div>
           </motion.div>
+          )}
         </div>
       </div>
     </div>

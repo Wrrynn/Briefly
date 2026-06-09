@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+// Skor relevansi hasil pencarian. Prioritas: judul yang mengandung frasa/kata
+// kunci jauh lebih tinggi daripada isi teks; judul yang diawali kata kunci
+// mendapat bonus, sehingga yang "paling dekat" muncul paling atas.
+function relevanceScore(item: any, query: string): number {
+  const q = query.toLowerCase().trim();
+  if (!q) return 0;
+  const judul = (item.judul || "").toLowerCase();
+  const isi = (item.isi_teks || "").toLowerCase();
+  const words = q.split(/\s+/).filter((w) => w.length >= 2);
+
+  let score = 0;
+  if (judul.includes(q)) score += 100; // frasa penuh di judul
+  if (judul.startsWith(q)) score += 50; // judul diawali kata kunci
+  if (isi.includes(q)) score += 15; // frasa penuh di isi
+  for (const w of words) {
+    if (judul.includes(w)) score += 10; // tiap kata di judul
+    if (isi.includes(w)) score += 2; // tiap kata di isi
+  }
+  return score;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   
@@ -76,14 +97,24 @@ export async function GET(request: NextRequest) {
     )
     .in("id_cluster", clusterFilter);
 
-  // Batasi ke hari terakhir yang diupdate
-  if (dayStart && dayEnd) {
+  const isSearch = searchQuery.trim() !== "";
+
+  // Saat MENCARI: telusuri seluruh berita teranalisis (abaikan batas hari
+  // terakhir). Saat tidak mencari: batasi ke hari terakhir yang diupdate.
+  if (!isSearch && dayStart && dayEnd) {
     dbQuery = dbQuery.gte("created_at", dayStart).lt("created_at", dayEnd);
   }
 
-  // A. Eksekusi filter pencarian kata kunci jika user mengetik sesuatu
-  if (searchQuery.trim() !== "") {
-    dbQuery = dbQuery.or(`judul.ilike.%${searchQuery}%,isi_teks.ilike.%${searchQuery}%`);
+  // A. Filter pencarian: cocokkan frasa penuh ATAU tiap kata, di judul/isi.
+  //    Hasilnya nanti diurutkan berdasarkan relevansi (lihat relevanceScore).
+  if (isSearch) {
+    const safe = searchQuery.replace(/[,()%*]/g, " ").trim();
+    const words = safe.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+    const terms = [...new Set([safe, ...words])].filter(Boolean);
+    const orStr = terms
+      .map((t) => `judul.ilike.%${t}%,isi_teks.ilike.%${t}%`)
+      .join(",");
+    dbQuery = dbQuery.or(orStr);
   }
 
   // B. FIX UTAMA: Eksekusi filter kategori menggunakan klausa OR terpisah yang valid di Supabase JS
@@ -122,14 +153,37 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Tarik data dengan range halaman pagination yang presisi dari postgres
-  const { data: beritaData, error: errorBerita, count } = await dbQuery
-    .order("created_at", { ascending: false }) 
-    .range(from, to); 
+  // Eksekusi query. Saat mencari, urutkan berdasarkan RELEVANSI (judul paling
+  // dekat dengan kata kunci di atas) lalu paginasi; selain itu urut terbaru.
+  let beritaData: any[] = [];
+  let count = 0;
 
-  if (errorBerita) {
-    console.error("Supabase Error:", errorBerita);
-    return NextResponse.json({ error: errorBerita.message }, { status: 500 });
+  if (isSearch) {
+    const { data, error } = await dbQuery.limit(500);
+    if (error) {
+      console.error("Supabase Error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    const ranked = (data || [])
+      .map((b) => ({ item: b, score: relevanceScore(b, searchQuery) }))
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          new Date(b.item.created_at || 0).getTime() -
+            new Date(a.item.created_at || 0).getTime(),
+      );
+    count = ranked.length;
+    beritaData = ranked.slice(from, to + 1).map((r) => r.item);
+  } else {
+    const { data, error, count: c } = await dbQuery
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (error) {
+      console.error("Supabase Error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    beritaData = data || [];
+    count = c ?? 0;
   }
 
   // 2. Ambil data semua sumber berita berdasarkan id_cluster

@@ -344,7 +344,7 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
         <div className="flex items-center gap-2">
           <div className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-emerald-500 animate-pulse" : "bg-gray-300 dark:bg-white/20"}`} />
           <span className="text-[9px] font-black text-gray-400 dark:text-white/40 uppercase tracking-[0.2em]">
-            {isLive ? "LIVE AI" : "CACHED"}
+            {isLive ? "Hasil Analisis" : "Belum Dianalisis"}
           </span>
         </div>
       </div>

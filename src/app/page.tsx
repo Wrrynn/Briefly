@@ -105,6 +105,7 @@ export default function Home() {
           setIsDarkMode={handleToggleTheme}
           trendingNews={allNews.slice(0, 3)}
           loadingTrending={loadingNews}
+          searchActive={query.trim() !== ""}
         />
 
         <div id="news-content" className="py-20">
@@ -142,14 +143,19 @@ export default function Home() {
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div
                     key={i}
-                    className="bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden animate-pulse"
+                    className="bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden animate-pulse shadow-lg shadow-gray-100/60 dark:shadow-none"
                   >
-                    <div className="h-52 bg-white/5" />
                     <div className="p-6 space-y-3">
-                      <div className="h-3 bg-white/10 rounded w-1/3" />
-                      <div className="h-5 bg-white/10 rounded w-full" />
-                      <div className="h-5 bg-white/10 rounded w-4/5" />
-                      <div className="h-3 bg-white/5 rounded w-full mt-4" />
+                      <div className="flex justify-between">
+                        <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-md" />
+                        <div className="h-5 w-14 bg-gray-200 dark:bg-white/10 rounded-md" />
+                      </div>
+                      <div className="h-3 bg-gray-200 dark:bg-white/10 rounded w-2/5" />
+                      <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-full mt-3" />
+                      <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-4/5" />
+                      <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mt-3" />
+                      <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-3/4" />
+                      <div className="h-11 bg-gray-200 dark:bg-white/10 rounded-xl w-full mt-5" />
                     </div>
                   </div>
                 ))}
@@ -169,8 +175,12 @@ export default function Home() {
                       <p className="text-gray-400 dark:text-white/20 tracking-[0.2em] font-bold uppercase">
                         Berita tidak ditemukan
                       </p>
-                      <p className="text-gray-300 dark:text-white/10 text-sm mt-2">
-                        Kata kunci "{query}" tidak ditemukan di database.
+                      <p className="text-gray-300 dark:text-white/20 text-sm mt-2">
+                        {query.trim() !== ""
+                          ? `Kata kunci "${query}" tidak ada di berita yang sudah dianalisis.`
+                          : category !== "Semua"
+                            ? `Belum ada berita teranalisis untuk kategori "${category}" hari ini.`
+                            : "Belum ada berita yang dapat ditampilkan."}
                       </p>
                     </div>
                   )}
