@@ -9,7 +9,7 @@ export default function NewsContent({ news }: { news: NewsItem }) {
         {paragraphs.map((p, i) => (
           <p
             key={i}
-            className="text-[17px] md:text-[19px] leading-[1.8] text-gray-800 dark:text-white/80 font-medium transition-colors duration-500"
+            className="text-[17px] md:text-[19px] leading-[1.8] text-gray-800 dark:text-white/80 font-medium text-justify transition-colors duration-500"
           >
             {p}
           </p>

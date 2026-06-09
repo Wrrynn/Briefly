@@ -12,15 +12,21 @@ export async function GET(request: NextRequest) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  // 0. Prioritaskan berita yang SUDAH dianalisis: hanya tampilkan berita dari
-  //    cluster yang punya data sentimen asli (tabel_sentimen_aktor terisi).
+  // 0. Hanya tampilkan berita yang analisisnya LENGKAP: cluster harus punya
+  //    data sentimen (tabel_sentimen_aktor) DAN prediksi sektor (tabel_sektor).
   //    Otomatis bertambah saat worker AI memproses lebih banyak cluster.
-  const { data: sentRows } = await supabase
-    .from("tabel_sentimen_aktor")
-    .select("id_cluster");
-  const analyzedClusterIds = [
-    ...new Set((sentRows || []).map((r) => r.id_cluster).filter((x): x is number => x != null)),
-  ];
+  const [{ data: sentRows }, { data: sektorRows }] = await Promise.all([
+    supabase.from("tabel_sentimen_aktor").select("id_cluster"),
+    supabase.from("tabel_sektor").select("id_cluster"),
+  ]);
+  const sentSet = new Set(
+    (sentRows || []).map((r) => r.id_cluster).filter((x): x is number => x != null),
+  );
+  const sektorSet = new Set(
+    (sektorRows || []).map((r) => r.id_cluster).filter((x): x is number => x != null),
+  );
+  // Irisan: cluster yang punya sentimen DAN sektor
+  const analyzedClusterIds = [...sentSet].filter((id) => sektorSet.has(id));
 
   // 1. Inisialisasi basis query utama
   let dbQuery = supabase

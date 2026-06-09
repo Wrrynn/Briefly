@@ -371,9 +371,8 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
                   : "text-blue-700 dark:text-blue-400";
               return (
                 <div key={idx} className={`flex flex-col p-5 rounded-2xl border ${bg}`}>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3">
                     <span className={`text-[13px] font-black uppercase tracking-[0.15em] ${txt}`}>{s.type}</span>
-                    <span className={`text-[13px] font-black ${txt}`}>{s.percentage}%</span>
                   </div>
                   <p className="text-[15px] text-gray-700 dark:text-white/80 leading-relaxed font-medium">
                     {s.description}
@@ -382,20 +381,26 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
               );
             })}
 
-            {news.impacts && news.impacts.length > 0 && (
-              <div className="flex flex-wrap gap-3 mt-3 pt-5 border-t border-gray-100 dark:border-white/[0.05]">
-                {news.impacts.map((imp: any, idx: number) => (
-                  <div key={idx} className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-gray-100 dark:bg-[#111118] border border-gray-200 dark:border-white/[0.05]">
-                    <span className="text-[11px] font-bold text-gray-600 dark:text-white/70 uppercase tracking-widest">
-                      {imp.name}
-                    </span>
-                    {imp.percentage > 0 && (
-                      <span className="text-[11px] font-black text-gray-900 dark:text-white">
-                        {imp.percentage}%
+            {news.sektorPredictions && news.sektorPredictions.length > 0 && (
+              <div className="mt-3 pt-5 border-t border-gray-100 dark:border-white/[0.05]">
+                <p className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase mb-3">
+                  Sektor Terdampak
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {news.sektorPredictions.map((sek, idx) => {
+                    const risk = (sek.tingkat_risiko || "").toLowerCase();
+                    const style = risk.includes("tinggi")
+                      ? "text-rose-700 bg-rose-100 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/25"
+                      : risk.includes("sedang")
+                        ? "text-amber-700 bg-amber-100 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/25"
+                        : "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/25";
+                    return (
+                      <span key={idx} className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border ${style}`}>
+                        {sek.nama_sektor}
                       </span>
-                    )}
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -403,11 +408,11 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
       </div>
 
       {/* Prediksi Sektor (1–4 Minggu) */}
-      {news.sektorPredictions && news.sektorPredictions.length > 0 && (
-        <div className="mb-8 relative z-10">
-          <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase mb-5">
-            Prediksi Sektor · 1–4 Minggu
-          </h4>
+      <div className="mb-8 relative z-10">
+        <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase mb-5">
+          Prediksi Sektor · 1–4 Minggu
+        </h4>
+        {news.sektorPredictions && news.sektorPredictions.length > 0 ? (
           <div className="flex flex-col gap-4">
             {news.sektorPredictions.map((sek, idx) => {
               const risk = (sek.tingkat_risiko || "").toLowerCase();
@@ -426,15 +431,31 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
                       Risiko {sek.tingkat_risiko}
                     </span>
                   </div>
-                  <p className="text-[13px] text-gray-700 dark:text-white/70 leading-relaxed font-medium">
+                  <p className="text-[13px] text-gray-700 dark:text-white/70 leading-relaxed font-medium text-justify">
                     {sek.prediksi_dampak}
                   </p>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex items-start gap-3 p-5 rounded-2xl border border-dashed border-amber-300/60 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/[0.07]">
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
+              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[12px] font-black uppercase tracking-[0.15em] text-amber-700 dark:text-amber-400 mb-1">
+                Belum Dianalisis
+              </p>
+              <p className="text-[13px] text-gray-600 dark:text-white/60 leading-relaxed font-medium">
+                Prediksi sektor untuk berita ini belum tersedia.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Sumber Berita (bisa lebih dari satu sesuai data) */}
       <div className="mt-auto relative z-10">
