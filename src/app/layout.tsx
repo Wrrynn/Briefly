@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     title: "Briefly: Analisis Berita Indonesia dalam Perspektif AI",
     description:
         "Platform intelijen berita berbasis AI: ringkasan, analisis sentimen, dan prediksi dampak sektoral dari berita Indonesia.",
+    icons: {
+    icon: "../../public/images/Briefly-logo.png",
+    shortcut: "../../public/images/Briefly-logo.png",
+    apple: "../../public/images/Briefly-logo.png"
+    },
 };
 
 export default function RootLayout({
