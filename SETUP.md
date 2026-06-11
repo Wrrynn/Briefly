@@ -10,15 +10,6 @@ npm run dev
 ## Mengaktifkan Live AI Analysis
 
 1. Buat file `.env.local` di root project
-2. Tambahkan API key Anthropic kamu:
-
-```
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxx
-```
-
-3. Dapatkan API key di: https://console.anthropic.com
-
-Tanpa API key, halaman detail tetap berjalan normal menggunakan **data mock** — AI summary, sentiment, dan keyword sudah tersedia dari `mockNews.ts`. Begitu API key ditambahkan, setiap halaman berita akan otomatis melakukan analisis Claude secara real-time saat dibuka.
 
 ## Alur Kerja AI
 
@@ -26,7 +17,7 @@ Tanpa API key, halaman detail tetap berjalan normal menggunakan **data mock** �
 2. Artikel ditampilkan **langsung** (tidak menunggu AI)
 3. Navbar menampilkan indikator **"AI menganalisis…"** (kuning berkedip)
 4. API route `/api/analyze-news` mengirim konten berita ke Claude
-5. Claude mengembalikan: sentiment, confidence score, ringkasan, kata kunci, dampak
+5. AI agent mengembalikan: sentiment, confidence score, ringkasan, kata kunci, dampak
 6. AI Insight Panel **diperbarui secara live** dengan animasi smooth
 7. Navbar berubah ke **"Analisis AI selesai"** (hijau berkedip)
 
