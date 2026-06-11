@@ -4,28 +4,29 @@ import { supabase } from "@/lib/supabase";
 // Koneksi ke Supabase kadang lambat/putus. Helper ini mengulang query (rebuild
 // tiap percobaan) dengan batas waktu per percobaan, agar gangguan sesaat tidak
 // membuat seluruh data kosong tanpa pesan error.
-export async function q<R extends { error: any }>(
-  factory: () => PromiseLike<R>,
+type SbResult = { data: any; error: any; count?: number | null };
+export async function q(
+  factory: () => PromiseLike<any>,
   tries = 2,
   perTryMs = 50000,
-): Promise<R> {
-  let last: R | null = null;
+): Promise<SbResult> {
+  let last: SbResult | null = null;
   for (let i = 0; i < tries; i++) {
     try {
-      const res = await Promise.race([
+      const res = (await Promise.race([
         factory(),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("timeout")), perTryMs),
         ),
-      ]);
+      ])) as SbResult;
       if (!res.error) return res;
       last = res;
     } catch (e) {
-      last = { error: e } as R;
+      last = { data: null, error: e };
     }
     await new Promise((r) => setTimeout(r, 300 * (i + 1)));
   }
-  return last ?? ({ error: new Error("Supabase tidak merespons") } as R);
+  return last ?? { data: null, error: new Error("Supabase tidak merespons") };
 }
 
 // Skor relevansi pencarian terhadap SUMMARY klaster (judul ringkasan + isi).
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 2. Hitung kategori SEKALI per klaster (dipakai untuk label DAN filter).
-  const enriched = (data || []).map((c: any) => ({
+  const enriched = ((data || []) as any[]).map((c: any) => ({
     raw: c,
     category: detectCategory(c.judul_summary || "", c.summary_text || ""),
     title: c.judul_summary || "",
