@@ -2,6 +2,9 @@
 export interface NewsItem {
   id: number;
   title: string;
+  // Judul hasil summarize dari tabel_cluster (judul_summary). Dipakai sebagai
+  // judul tampilan bila tersedia; jatuh ke `title` (judul artikel) bila tidak.
+  summaryTitle?: string;
   category: string;
   description: string;
   sentiments: {

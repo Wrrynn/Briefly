@@ -14,7 +14,7 @@ export default function NewsHeader({ news }: { news: NewsItem }) {
 
       {/* Teks diubah jadi text-gray-900 (Hitam pekat) di mode terang */}
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-gray-900 dark:text-white transition-colors duration-500">
-        {news.title}
+        {news.summaryTitle || news.title}
       </h1>
     </div>
   );

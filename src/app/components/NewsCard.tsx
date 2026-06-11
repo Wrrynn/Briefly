@@ -42,9 +42,23 @@ export default function NewsCard({ data }: any) {
           {data.title}
         </h2>
 
-        <p className="text-sm text-gray-600 dark:text-white/60 line-clamp-2 mb-6 font-normal leading-relaxed">
+        <p className="text-sm text-gray-600 dark:text-white/60 line-clamp-2 mb-4 font-normal leading-relaxed">
           {data.description}
         </p>
+
+        {/* Sektor terdampak (prediksi) */}
+        {data.sektorPredictions?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-6">
+            {data.sektorPredictions.slice(0, 3).map((s: any, i: number) => (
+              <span
+                key={i}
+                className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50"
+              >
+                {s.nama_sektor}
+              </span>
+            ))}
+          </div>
+        )}
 
         <Link
           href={`/news/${data.id}`}
