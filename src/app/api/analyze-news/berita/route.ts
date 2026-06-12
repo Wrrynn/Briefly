@@ -281,7 +281,7 @@ export function transformCluster(
     sektorPredictions: sektorPredictions,
     time: formatRelativeTime(waktu),
     image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop",
-    fullContent: rep.isi_teks || cluster.summary_text || "",
+    fullContent: cluster.summary_text || rep.isi_teks || "",
     aiSummary: cluster.summary_text || "Ringkasan belum tersedia.",
     keywords: sektorPredictions.map((s: any) => s.nama_sektor),
     publishedAt: waktu
