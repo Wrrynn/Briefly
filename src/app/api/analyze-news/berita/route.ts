@@ -94,7 +94,8 @@ export async function GET(request: NextRequest) {
         tabel_sentimen_aktor (
           nama_aktor,
           sentimen,
-          persentase
+          persentase,
+          alasan
         )
       `,
       )
@@ -242,7 +243,10 @@ export function transformCluster(
   const sentiments = aktors.slice(0, 3).map((a: any) => ({
     type: a.sentimen as "Positif" | "Negatif" | "Netral",
     percentage: a.persentase,
-    description: `${a.nama_aktor} — sentimen ${a.sentimen.toLowerCase()} terdeteksi.`,
+    aktor: a.nama_aktor,
+    description:
+      a.alasan?.trim() ||
+      `${a.nama_aktor} — sentimen ${a.sentimen.toLowerCase()} terdeteksi.`,
   }));
 
   const sektorPredictions = (sektorList || []).map((s: any) => ({

@@ -28,7 +28,8 @@ export async function GET(
         tabel_sentimen_aktor (
           nama_aktor,
           sentimen,
-          persentase
+          persentase,
+          alasan
         ),
         tabel_berita (
           id_berita,

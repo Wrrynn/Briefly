@@ -11,6 +11,7 @@ export interface NewsItem {
     type: "Positif" | "Negatif" | "Netral";
     percentage: number;
     description: string;
+    aktor?: string;
   }[];
   impacts: { name: string; percentage: number }[];
   source: string;
