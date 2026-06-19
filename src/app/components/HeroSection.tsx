@@ -177,7 +177,7 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                     </div>
 
                     {!searchActive && (
-                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full pb-20 lg:pb-28">
+                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full pb-8 lg:pb-10">
                             <div className="flex items-center gap-4 mb-10">
                                 <h3 className="text-[11px] font-black text-gray-400 dark:text-gray-500 tracking-[0.4em] uppercase">Trending Hari Ini</h3>
                                 <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/5"></div>

@@ -10,7 +10,7 @@ const team = [
     { role: "AI Engineer", name: "Farhan Ahmad Naufal (Farhan)", email: "farhan310105@gmail.com" },
     { role: "AI Engineer", name: "Galuh Ambar Setiana (Galuh)", email: "galuhambar08@gmail.com" },
     { role: "Front-end Developer", name: "Fransiskus Harris Berliandu (Harris)", email: "berliandu@gmail.com" },
-    { role: "Back-end Developer", name: "Timothy Hinsan Widjaja (Timothy)", email: "racataxs@gmail.com" },
+    { role: "Back-end Developer", name: "Timothy Hinsan Widjaja (Timothy)", email: "timothywidjaja33@gmail.com" },
     { role: "Quality Assurance Engineer", name: "Rizky Abadi (Rizky)", email: "rizkiabadii17@gmail.com" },
 ];
 

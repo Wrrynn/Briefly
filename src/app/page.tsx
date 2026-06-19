@@ -14,6 +14,7 @@ export default function Home() {
     const [query, setQuery] = useState("");
     const [category, setCategory] = useState("Semua");
     const [sentimentFilter, setSentimentFilter] = useState("Semua");
+    const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
     const [showFilters, setShowFilters] = useState(false);
 
     // Jumlah filter aktif (selain "Semua") untuk badge di tombol filter
@@ -42,10 +43,10 @@ export default function Home() {
         }
     }, []);
 
-    // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, atau sentimen berubah
+    // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, atau urutan berubah
     useEffect(() => {
         setCurrentPage(1);
-    }, [query, category, sentimentFilter]);
+    }, [query, category, sentimentFilter, sortOrder]);
 
     // Ambil data dinamis dari API secara terpusat
     useEffect(() => {
@@ -61,6 +62,7 @@ export default function Home() {
         if (sentimentFilter !== "Semua") {
             url += `&sentiment=${encodeURIComponent(sentimentFilter)}`;
         }
+        url += `&sort=${sortOrder}`;
 
         fetch(url, { cache: "no-store" })
             .then((res) => res.json())
@@ -81,7 +83,7 @@ export default function Home() {
             .finally(() => {
                 setLoadingNews(false);
             });
-    }, [currentPage, category, query, sentimentFilter]);
+    }, [currentPage, category, query, sentimentFilter, sortOrder]);
 
     const filteredNews = allNews;
     const totalPages = totalNewsCount > 0 ? Math.ceil(totalNewsCount / ITEMS_PER_PAGE) : 1;
@@ -122,7 +124,7 @@ export default function Home() {
                     setSentimentFilter={setSentimentFilter}
                 />
 
-                <div id="news-content" className="py-20">
+                <div id="news-content" className="pt-8 pb-20">
                     <div className="max-w-7xl mx-auto px-4">
                         <div className="mb-10">
                             {/* Baris kontrol: tombol filter + ringkasan filter aktif */}
@@ -253,11 +255,44 @@ export default function Home() {
                                     </div>
                                 )}
                             </div>
-                            {totalNewsCount > 0 && totalPages > 1 && (
-                                <p className="text-xs sm:text-sm text-gray-400 dark:text-white/30 uppercase tracking-[0.15em] font-bold">
-                                    Hal. {currentPage} / {totalPages}
-                                </p>
-                            )}
+                            <div className="flex items-center gap-4">
+                                {/* Urutkan: Terbaru (desc) / Terlama (asc) */}
+                                <div className="flex items-center gap-2">
+                                    <span className="hidden sm:inline text-[10px] text-gray-400 dark:text-white/40 uppercase tracking-[0.2em] font-bold">
+                                        Urutkan:
+                                    </span>
+                                    <div className="inline-flex p-1 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5">
+                                        <button
+                                            onClick={() => setSortOrder("desc")}
+                                            aria-pressed={sortOrder === "desc"}
+                                            className={`px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                                                sortOrder === "desc"
+                                                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow"
+                                                    : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
+                                            }`}
+                                        >
+                                            Terbaru
+                                        </button>
+                                        <button
+                                            onClick={() => setSortOrder("asc")}
+                                            aria-pressed={sortOrder === "asc"}
+                                            className={`px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                                                sortOrder === "asc"
+                                                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow"
+                                                    : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
+                                            }`}
+                                        >
+                                            Terlama
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {totalNewsCount > 0 && totalPages > 1 && (
+                                    <p className="text-xs sm:text-sm text-gray-400 dark:text-white/30 uppercase tracking-[0.15em] font-bold">
+                                        Hal. {currentPage} / {totalPages}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         {loadingNews ? (

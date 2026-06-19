@@ -54,6 +54,17 @@ type SearchDoc = {
   extra: string; // judul berita anggota + portal + alasan sentimen
 };
 
+// Tanggal kalender (YYYY-MM-DD) menurut zona waktu Indonesia (WIB/Asia/Jakarta).
+// Dipakai untuk membandingkan apakah sebuah berita terbit "hari ini".
+function jakartaDateStr(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
 // Skor relevansi pencarian terhadap dokumen klaster (gabungan beberapa field
 // dengan bobot berbeda). Mengembalikan 0 jika tak ada kecocokan sama sekali.
 function relevanceScore(doc: SearchDoc, query: string): number {
@@ -91,6 +102,8 @@ export async function GET(request: NextRequest) {
   const categoryFilter = searchParams.get("category") || "Semua";
   const searchQuery = searchParams.get("search") || "";
   const sentimentFilter = searchParams.get("sentiment") || "Semua";
+  // Urutan waktu: "desc" (terbaru dulu, default) atau "asc" (terlama dulu).
+  const sortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
 
   const from = (page - 1) * limit;
   const to = from + limit - 1;
@@ -154,6 +167,22 @@ export async function GET(request: NextRequest) {
   const enriched = ((data || []) as any[]).map((c: any) => {
     const aktors = c.tabel_sentimen_aktor || [];
     const members = c.tabel_berita || [];
+
+    // Waktu efektif klaster = created_at anggota TERBARU (fallback waktu_terbentuk).
+    // HARUS sama dengan perhitungan di transformCluster agar urutan & filter
+    // "hari terakhir" konsisten dengan WAKTU yang TAMPIL di kartu.
+    const repCreatedAt = (members as any[]).reduce(
+      (acc: string | null, m: any) => {
+        if (!m?.created_at) return acc;
+        if (!acc || new Date(m.created_at).getTime() > new Date(acc).getTime()) {
+          return m.created_at;
+        }
+        return acc;
+      },
+      null as string | null,
+    );
+    const waktu = repCreatedAt || c.waktu_terbentuk;
+
     // Sentimen kartu = gabungan sentimen aktor (maks 3, sama dgn yang tampil):
     // semua Positif -> "Positif", semua Negatif -> "Negatif",
     // ada Positif & Negatif -> "Campuran".
@@ -174,7 +203,7 @@ export async function GET(request: NextRequest) {
       category: detectCategory(c.judul_summary || "", c.summary_text || ""),
       title: c.judul_summary || "",
       text: c.summary_text || "",
-      waktu: c.waktu_terbentuk,
+      waktu,
       sentiment: combinedSentiment,
       search: {
         title: c.judul_summary || "",
@@ -187,8 +216,21 @@ export async function GET(request: NextRequest) {
 
   const isSearch = searchQuery.trim() !== "";
 
+  // 2.5 HANYA berita pada HARI TERAKHIR yang ada di database (bukan tanggal
+  //     sistem). Cari tanggal kalender (WIB) paling baru di antara klaster,
+  //     lalu tampilkan hanya klaster pada tanggal tersebut.
+  const latestDate = enriched.reduce<string | null>((acc, e) => {
+    if (!e.waktu) return acc;
+    const d = jakartaDateStr(new Date(e.waktu));
+    return !acc || d > acc ? d : acc;
+  }, null);
+  let filtered = latestDate
+    ? enriched.filter(
+        (e) => e.waktu && jakartaDateStr(new Date(e.waktu)) === latestDate,
+      )
+    : enriched;
+
   // 3. Filter kategori — pakai kategori yang SAMA dengan label kartu.
-  let filtered = enriched;
   if (categoryFilter !== "Semua") {
     filtered = filtered.filter((e) => e.category === categoryFilter);
   }
@@ -205,18 +247,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 5. Urutkan: mencari → relevansi (lalu terbaru); selain itu → terbaru.
+  // 5. Urutkan berdasarkan waktu sesuai pilihan (asc/desc). Saat mencari,
+  //    relevansi tetap utama lalu waktu sebagai penyeimbang.
+  const byTime = (a: any, b: any) => {
+    const ta = new Date(a.waktu || 0).getTime();
+    const tb = new Date(b.waktu || 0).getTime();
+    return sortOrder === "asc" ? ta - tb : tb - ta;
+  };
   if (isSearch) {
     filtered.sort(
       (a, b) =>
         relevanceScore(b.search, searchQuery) -
-          relevanceScore(a.search, searchQuery) ||
-        new Date(b.waktu || 0).getTime() - new Date(a.waktu || 0).getTime(),
+          relevanceScore(a.search, searchQuery) || byTime(a, b),
     );
   } else {
-    filtered.sort(
-      (a, b) => new Date(b.waktu || 0).getTime() - new Date(a.waktu || 0).getTime(),
-    );
+    filtered.sort(byTime);
   }
 
   // 6. Paginasi + transform (kategori diteruskan agar konsisten dgn filter).
