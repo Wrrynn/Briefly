@@ -29,21 +29,56 @@ export async function q(
   return last ?? { data: null, error: new Error("Supabase tidak merespons") };
 }
 
-// Skor relevansi pencarian terhadap SUMMARY klaster (judul ringkasan + isi).
-function relevanceScore(title: string, text: string, query: string): number {
+// Gabungkan sentimen beberapa aktor menjadi satu label untuk kartu/filter:
+// semua Positif -> "Positif", semua Negatif -> "Negatif",
+// ada Positif & Negatif -> "Campuran", selain itu -> "Netral".
+function combineSentiments(aktors: any[]): string {
+  if (!aktors?.length) return "Netral";
+  const types = new Set(aktors.map((a) => a.sentimen));
+  const hasPositif = types.has("Positif");
+  const hasNegatif = types.has("Negatif");
+  if (hasPositif && hasNegatif) return "Campuran";
+  if (hasPositif) return "Positif";
+  if (hasNegatif) return "Negatif";
+  return "Netral";
+}
+
+// Dokumen yang bisa dicari per klaster. Pencarian menjangkau judul ringkasan,
+// isi ringkasan, nama aktor, serta info pendukung (judul berita anggota, portal
+// sumber, alasan sentimen) sehingga user bisa mencari "berdasarkan judul, isi
+// berita, aktor, dll".
+type SearchDoc = {
+  title: string; // judul ringkasan klaster
+  text: string; // isi ringkasan klaster
+  actors: string; // nama aktor (cocok kuat)
+  extra: string; // judul berita anggota + portal + alasan sentimen
+};
+
+// Skor relevansi pencarian terhadap dokumen klaster (gabungan beberapa field
+// dengan bobot berbeda). Mengembalikan 0 jika tak ada kecocokan sama sekali.
+function relevanceScore(doc: SearchDoc, query: string): number {
   const qy = query.toLowerCase().trim();
   if (!qy) return 0;
-  const judul = (title || "").toLowerCase();
-  const isi = (text || "").toLowerCase();
+  const judul = (doc.title || "").toLowerCase();
+  const isi = (doc.text || "").toLowerCase();
+  const aktor = (doc.actors || "").toLowerCase();
+  const extra = (doc.extra || "").toLowerCase();
   const words = qy.split(/\s+/).filter((w) => w.length >= 2);
 
   let score = 0;
+  // Cocok frasa penuh — paling kuat.
   if (judul.includes(qy)) score += 100;
   if (judul.startsWith(qy)) score += 50;
+  if (aktor.includes(qy)) score += 60;
   if (isi.includes(qy)) score += 15;
+  if (extra.includes(qy)) score += 12;
+
+  // Cocok per kata — agar pencarian beberapa kata tetap relevan.
   for (const w of words) {
     if (judul.includes(w)) score += 10;
+    if (aktor.includes(w)) score += 8;
     if (isi.includes(w)) score += 2;
+    if (extra.includes(w)) score += 2;
   }
   return score;
 }
@@ -55,6 +90,7 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "10");
   const categoryFilter = searchParams.get("category") || "Semua";
   const searchQuery = searchParams.get("search") || "";
+  const sentimentFilter = searchParams.get("sentiment") || "Semua";
 
   const from = (page - 1) * limit;
   const to = from + limit - 1;
@@ -96,6 +132,12 @@ export async function GET(request: NextRequest) {
           sentimen,
           persentase,
           alasan
+        ),
+        tabel_berita (
+          judul,
+          portal_sumber,
+          url_asli,
+          created_at
         )
       `,
       )
@@ -109,13 +151,39 @@ export async function GET(request: NextRequest) {
   }
 
   // 2. Hitung kategori SEKALI per klaster (dipakai untuk label DAN filter).
-  const enriched = ((data || []) as any[]).map((c: any) => ({
-    raw: c,
-    category: detectCategory(c.judul_summary || "", c.summary_text || ""),
-    title: c.judul_summary || "",
-    text: c.summary_text || "",
-    waktu: c.waktu_terbentuk,
-  }));
+  const enriched = ((data || []) as any[]).map((c: any) => {
+    const aktors = c.tabel_sentimen_aktor || [];
+    const members = c.tabel_berita || [];
+    // Sentimen kartu = gabungan sentimen aktor (maks 3, sama dgn yang tampil):
+    // semua Positif -> "Positif", semua Negatif -> "Negatif",
+    // ada Positif & Negatif -> "Campuran".
+    const combinedSentiment = combineSentiments(aktors.slice(0, 3));
+
+    // Dokumen pencarian: nama aktor (cocok kuat) + info pendukung (judul berita
+    // anggota, portal sumber, alasan sentimen) supaya pencarian menjangkau
+    // judul, isi, aktor, dan sumber.
+    const actors = aktors.map((a: any) => a.nama_aktor || "").join(" ");
+    const extra = [
+      ...members.map((m: any) => m.judul || ""),
+      ...members.map((m: any) => m.portal_sumber || ""),
+      ...aktors.map((a: any) => a.alasan || ""),
+    ].join(" ");
+
+    return {
+      raw: c,
+      category: detectCategory(c.judul_summary || "", c.summary_text || ""),
+      title: c.judul_summary || "",
+      text: c.summary_text || "",
+      waktu: c.waktu_terbentuk,
+      sentiment: combinedSentiment,
+      search: {
+        title: c.judul_summary || "",
+        text: c.summary_text || "",
+        actors,
+        extra,
+      } as SearchDoc,
+    };
+  });
 
   const isSearch = searchQuery.trim() !== "";
 
@@ -125,10 +193,15 @@ export async function GET(request: NextRequest) {
     filtered = filtered.filter((e) => e.category === categoryFilter);
   }
 
-  // 4. Filter pencarian — di judul/isi RINGKASAN cluster.
+  // 3.5 Filter sentimen — filter berdasarkan sentimen dominan berita
+  if (sentimentFilter !== "Semua") {
+    filtered = filtered.filter((e) => e.sentiment === sentimentFilter);
+  }
+
+  // 4. Filter pencarian — judul/isi ringkasan + aktor + judul berita anggota & portal.
   if (isSearch) {
     filtered = filtered.filter(
-      (e) => relevanceScore(e.title, e.text, searchQuery) > 0,
+      (e) => relevanceScore(e.search, searchQuery) > 0,
     );
   }
 
@@ -136,8 +209,8 @@ export async function GET(request: NextRequest) {
   if (isSearch) {
     filtered.sort(
       (a, b) =>
-        relevanceScore(b.title, b.text, searchQuery) -
-          relevanceScore(a.title, a.text, searchQuery) ||
+        relevanceScore(b.search, searchQuery) -
+          relevanceScore(a.search, searchQuery) ||
         new Date(b.waktu || 0).getTime() - new Date(a.waktu || 0).getTime(),
     );
   } else {

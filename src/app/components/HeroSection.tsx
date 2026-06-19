@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 
 interface HeroProps {
     setQuery: (val: string) => void;
@@ -11,6 +12,8 @@ interface HeroProps {
     trendingNews?: any[];
     loadingTrending?: boolean;
     searchActive?: boolean;
+    sentimentFilter?: string;
+    setSentimentFilter?: (val: string) => void;
 }
 
 function getDominantSentiment(sentiments: any[]) {
@@ -20,7 +23,7 @@ function getDominantSentiment(sentiments: any[]) {
     );
 }
 
-export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trendingNews, loadingTrending, searchActive }: HeroProps) {
+export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trendingNews, loadingTrending, searchActive, sentimentFilter, setSentimentFilter }: HeroProps) {
     const [mounted, setMounted] = useState(false);
     const [input, setInput] = useState("");
 
@@ -34,6 +37,13 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
     const clearSearch = () => {
         setInput("");
         setQuery("");
+        if (setSentimentFilter) setSentimentFilter("Semua");
+    };
+
+    const handleSentimentClick = (sentiment: string) => {
+        if (setSentimentFilter) {
+            setSentimentFilter(sentimentFilter === sentiment ? "Semua" : sentiment);
+        }
     };
 
     const topTopics = (trendingNews || []).slice(0, 3).map((item, index) => {
@@ -57,10 +67,14 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                 {/* NAVBAR */}
                 <nav className="relative z-50 w-full px-5 sm:px-8 py-6 sm:py-8 lg:px-16 flex justify-between items-center">
                     <Link href="/" className="flex items-center gap-3 group outline-none">
-                        <div className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
-                        </div>
+                        <Image
+                            src="/images/Briefly-logo.png"
+                            alt="Logo Briefly"
+                            width={36}
+                            height={36}
+                            priority
+                            className="h-9 w-9 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-105"
+                        />
                         <span className="text-sm font-black tracking-[0.3em] uppercase text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             Briefly
                         </span>
@@ -107,7 +121,7 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={(e) => { if (e.key === "Enter") submitSearch(); }}
-                                        placeholder="Cari analisis sentimen..."
+                                        placeholder="Cari analisis berita"
                                         className="w-full bg-transparent border-none outline-none py-4 sm:py-5 text-gray-900 dark:text-white placeholder-gray-400 font-bold text-base sm:text-lg"
                                     />
                                     {searchActive && (
@@ -131,6 +145,51 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                                         </svg>
                                     </button>
                                 </div>
+                                
+                                {/* Sentiment Filter Pills - muncul saat user mengetik */}
+                                {input.trim() !== "" && setSentimentFilter && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }} 
+                                        animate={{ opacity: 1, y: 0 }} 
+                                        className="flex items-center justify-center gap-3 mt-4"
+                                    >
+                                        <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em]">
+                                            Sentimen:
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleSentimentClick("Positif")}
+                                                className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                                                    sentimentFilter === "Positif"
+                                                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/40 scale-105"
+                                                        : "bg-white dark:bg-white/5 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                                                }`}
+                                            >
+                                                Positif
+                                            </button>
+                                            <button
+                                                onClick={() => handleSentimentClick("Negatif")}
+                                                className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                                                    sentimentFilter === "Negatif"
+                                                        ? "bg-rose-600 text-white shadow-lg shadow-rose-500/40 scale-105"
+                                                        : "bg-white dark:bg-white/5 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                                                }`}
+                                            >
+                                                Negatif
+                                            </button>
+                                            <button
+                                                onClick={() => handleSentimentClick("Campuran")}
+                                                className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                                                    sentimentFilter === "Campuran"
+                                                        ? "bg-amber-600 text-white shadow-lg shadow-amber-500/40 scale-105"
+                                                        : "bg-white dark:bg-white/5 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+                                                }`}
+                                            >
+                                                Campuran
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
                             </div>
                         </motion.div>
                     </div>

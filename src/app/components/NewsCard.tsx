@@ -2,21 +2,32 @@
 
 import Link from "next/link";
 
-function getDominantSentiment(sentiments: any[]): "Positif" | "Negatif" | "Netral" | null {
+// Sentimen kartu mewakili gabungan sentimen semua aktor:
+// - semua Positif  -> "Positif"
+// - semua Negatif  -> "Negatif"
+// - ada Positif & Negatif -> "Campuran"
+function getCardSentiment(
+  sentiments: any[],
+): "Positif" | "Negatif" | "Netral" | "Campuran" | null {
   if (!sentiments?.length) return null;
-  return sentiments.reduce((prev: any, curr: any) =>
-    curr.percentage > prev.percentage ? curr : prev,
-  ).type;
+  const types = new Set(sentiments.map((s: any) => s.type));
+  const hasPositif = types.has("Positif");
+  const hasNegatif = types.has("Negatif");
+  if (hasPositif && hasNegatif) return "Campuran";
+  if (hasPositif) return "Positif";
+  if (hasNegatif) return "Negatif";
+  return "Netral";
 }
 
 const sentimentBadge: Record<string, string> = {
   Positif: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/25",
   Negatif: "text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/25",
   Netral: "text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/25",
+  Campuran: "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/25",
 };
 
 export default function NewsCard({ data }: any) {
-  const sentiment = getDominantSentiment(data.sentiments);
+  const sentiment = getCardSentiment(data.sentiments);
 
   return (
     <div className="group relative flex flex-col bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-600 dark:hover:border-blue-500/40 hover:shadow-2xl hover:-translate-y-1 shadow-lg shadow-gray-100/60 dark:shadow-none">

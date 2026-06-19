@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import NewsHeader from "@/app/components/detail/NewsHeader";
 import NewsMeta from "@/app/components/detail/NewsMeta";
@@ -130,11 +131,15 @@ export default function NewsDetailPage() {
             {/* NAVBAR */}
             <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-[#05051a]/80 backdrop-blur-2xl transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-3 text-[11px] font-black tracking-[0.4em] uppercase text-gray-900 dark:text-white/80 hover:text-blue-600 dark:hover:text-white transition-colors duration-200">
-                        <div className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                        </div>
+                    <Link href="/" className="group flex items-center gap-3 text-[11px] font-black tracking-[0.4em] uppercase text-gray-900 dark:text-white/80 hover:text-blue-600 dark:hover:text-white transition-colors duration-200">
+                        <Image
+                            src="/images/Briefly-logo.png"
+                            alt="Logo Briefly"
+                            width={32}
+                            height={32}
+                            priority
+                            className="h-8 w-8 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-105"
+                        />
                         <span>Briefly</span>
                     </Link>
 
