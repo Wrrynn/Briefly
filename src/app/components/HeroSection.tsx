@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import NewsCard from "./NewsCard";
 
 interface HeroProps {
     setQuery: (val: string) => void;
@@ -14,13 +15,6 @@ interface HeroProps {
     searchActive?: boolean;
     sentimentFilter?: string;
     setSentimentFilter?: (val: string) => void;
-}
-
-function getDominantSentiment(sentiments: any[]) {
-    if (!sentiments?.length) return { type: "Netral" as const, percentage: 50 };
-    return sentiments.reduce((prev, curr) =>
-        curr.percentage > prev.percentage ? curr : prev
-    );
 }
 
 export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trendingNews, loadingTrending, searchActive, sentimentFilter, setSentimentFilter }: HeroProps) {
@@ -45,18 +39,6 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
             setSentimentFilter(sentimentFilter === sentiment ? "Semua" : sentiment);
         }
     };
-
-    const topTopics = (trendingNews || []).slice(0, 3).map((item, index) => {
-        const dominant = getDominantSentiment(item.sentiments || []);
-        return {
-            rank: index + 1,
-            id: item.id,
-            title: item.title,
-            sentiment: dominant.type as "Positif" | "Negatif" | "Netral",
-            score: dominant.percentage,
-            category: item.category,
-        };
-    });
 
     useEffect(() => setMounted(true), []);
 
@@ -111,7 +93,7 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
 
                             <h1 className="text-4xl sm:text-6xl md:text-6xl font-black leading-[1.05] tracking-tighter mb-8 sm:mb-12 text-gray-900 dark:text-white">
                                 ANALISIS INDONESIA <br />
-                                <span className="text-blue-600 dark:text-blue-500 italic">DALAM PERSPEKTIF AI.</span>
+                                <span className="text-blue-600 dark:text-blue-500 italic">DALAM PERSPEKTIF AI</span>
                             </h1>
 
                             <div className="relative max-w-2xl mx-auto mb-16 sm:mb-20 w-full">
@@ -204,41 +186,24 @@ export default function HeroSection({ setQuery, isDarkMode, setIsDarkMode, trend
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                 {loadingTrending ? (
                                     [1, 2, 3].map((i) => (
-                                        <div key={i} className="p-8 bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-[2rem] animate-pulse flex flex-col h-full min-h-[180px]">
-                                            <div className="flex justify-between items-start mb-8">
-                                                <div className="h-6 w-10 bg-gray-200 dark:bg-white/10 rounded-lg" />
-                                                <div className="text-right space-y-1">
-                                                    <div className="h-3 w-16 bg-gray-200 dark:bg-white/10 rounded ml-auto" />
-                                                    <div className="h-7 w-12 bg-gray-200 dark:bg-white/10 rounded ml-auto" />
+                                        <div key={i} className="bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden animate-pulse shadow-lg shadow-gray-100/60 dark:shadow-none">
+                                            <div className="p-6 space-y-3">
+                                                <div className="flex justify-between">
+                                                    <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-md" />
+                                                    <div className="h-5 w-14 bg-gray-200 dark:bg-white/10 rounded-md" />
                                                 </div>
-                                            </div>
-                                            <div className="mt-auto space-y-2">
-                                                <div className="h-3 w-20 bg-gray-200 dark:bg-white/10 rounded" />
-                                                <div className="h-5 w-full bg-gray-200 dark:bg-white/10 rounded" />
-                                                <div className="h-5 w-3/4 bg-gray-200 dark:bg-white/10 rounded" />
+                                                <div className="h-3 bg-gray-200 dark:bg-white/10 rounded w-2/5" />
+                                                <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-full mt-3" />
+                                                <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-4/5" />
+                                                <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mt-3" />
+                                                <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-3/4" />
+                                                <div className="h-11 bg-gray-200 dark:bg-white/10 rounded-xl w-full mt-5" />
                                             </div>
                                         </div>
                                     ))
-                                ) : topTopics.length > 0 ? (
-                                    topTopics.map((topic, index) => (
-                                        <Link
-                                            key={index}
-                                            href={topic.id ? `/news/${topic.id}` : "#"}
-                                            className="group relative p-8 bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-[2rem] text-left hover:border-blue-600 dark:hover:border-blue-500 transition-all duration-500 hover:shadow-2xl shadow-gray-100 dark:shadow-none hover:-translate-y-2 flex flex-col h-full"
-                                        >
-                                            <div className="flex justify-between items-start mb-8">
-                                                <span className="text-[10px] font-black px-4 py-1.5 bg-gray-900 dark:bg-white text-white dark:text-black rounded-lg uppercase">#{topic.rank}</span>
-                                                <div className="text-right">
-                                                    <p className={`text-[11px] font-black uppercase tracking-widest ${topic.sentiment === 'Positif' ? 'text-emerald-600' : topic.sentiment === 'Negatif' ? 'text-rose-600' : 'text-blue-600'}`}>
-                                                        {topic.sentiment}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="mt-auto">
-                                                <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] mb-3">{topic.category}</p>
-                                                <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-[1.3] group-hover:text-blue-600 transition-colors">{topic.title}</h4>
-                                            </div>
-                                        </Link>
+                                ) : (trendingNews || []).length > 0 ? (
+                                    (trendingNews || []).slice(0, 3).map((item, index) => (
+                                        <NewsCard key={item.id || index} data={item} />
                                     ))
                                 ) : (
                                     <div className="col-span-3 text-center py-8 text-gray-400 dark:text-white/30 text-sm tracking-widest uppercase font-bold">

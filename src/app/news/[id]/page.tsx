@@ -11,6 +11,7 @@ import NewsContent from "@/app/components/detail/NewsContent";
 import LoadingSkeleton, {
     SidebarSkeleton,
 } from "@/app/components/detail/LoadingSkeleton";
+import Footer from "@/app/components/Footer";
 import type { NewsItem } from "@/app/data/mockNews";
 
 // Tambahkan tipe eksplisit untuk data source dan sentiments agar lebih aman
@@ -234,6 +235,8 @@ export default function NewsDetailPage() {
                     </motion.section>
                 )}
             </div>
+
+            <Footer />
         </main>
     );
 }

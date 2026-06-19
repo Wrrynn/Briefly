@@ -44,9 +44,9 @@ export default function NewsCard({ data }: any) {
           )}
         </div>
 
-        {/* Sumber · Waktu */}
+        {/* Waktu */}
         <p className="text-[10px] text-gray-400 dark:text-white/50 font-bold uppercase tracking-widest mb-4">
-          {data.source} <span className="text-gray-300 dark:text-white/20">·</span> {data.time}
+          {data.time}
         </p>
 
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-white leading-snug mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 tracking-tight line-clamp-2">

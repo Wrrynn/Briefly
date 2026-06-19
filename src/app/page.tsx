@@ -6,6 +6,7 @@ import CategoryFilter from "./components/CategoryFilter";
 import SentimentFilter from "./components/SentimentFilter";
 import NewsCard from "./components/NewsCard";
 import HeroSection from "./components/HeroSection";
+import Footer from "./components/Footer";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -380,6 +381,8 @@ export default function Home() {
                         )}
                     </div>
                 </div>
+
+                <Footer />
             </div>
         </main>
     );
