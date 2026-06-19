@@ -8,7 +8,7 @@ import NewsCard from "./components/NewsCard";
 import HeroSection from "./components/HeroSection";
 import Footer from "./components/Footer";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 12;
 
 export default function Home() {
     const [query, setQuery] = useState("");
