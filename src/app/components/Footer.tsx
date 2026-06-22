@@ -24,7 +24,13 @@ const categories = [
     "Ekonomi & Bisnis",
     "Politik & Pemerintahan",
     "Hukum & Keamanan",
+    "Sosial & Masyarakat",
+    "Kesehatan",
+    "Pendidikan",
+    "Energi & Lingkungan",
     "Teknologi",
+    "Olahraga & Hiburan",
+    "Hubungan Internasional",
 ];
 
 const fitur = [
@@ -52,7 +58,7 @@ export default function Footer() {
     }, [showAbout]);
 
     return (
-        <footer className="relative border-t border-gray-200 dark:border-white/[0.06] bg-white dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500">
+        <footer className="relative border-t border-white/[0.06] bg-black text-white transition-colors duration-500">
             <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-16 py-14 sm:py-16">
                 <div className="grid grid-cols-2 md:grid-cols-12 gap-10">
                     {/* Brand + social */}
@@ -65,17 +71,17 @@ export default function Footer() {
                                 height={40}
                                 className="h-10 w-10 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-105"
                             />
-                            <span className="text-base font-black tracking-[0.3em] uppercase text-gray-900 dark:text-white">
+                            <span className="text-base font-black tracking-[0.3em] uppercase text-white">
                                 Briefly
                             </span>
                         </Link>
-                        <p className="mt-5 max-w-xs text-sm leading-relaxed text-gray-500 dark:text-white/50 font-medium">
+                        <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/50 font-medium">
                             Platform intelijen berita berbasis AI: ringkasan, analisis sentimen,
                             dan prediksi dampak sektoral dari berita Indonesia.
                         </p>
                         <button
                             onClick={() => setShowAbout(true)}
-                            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 dark:hover:bg-blue-500 dark:hover:text-white transition-all duration-300 active:scale-95"
+                            className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-gray-900 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-blue-500 hover:text-white transition-all duration-300 active:scale-95"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-2.5-1.34" />
@@ -85,14 +91,14 @@ export default function Footer() {
                     </div>
 
                     {/* Navigasi */}
-                    <div className="md:col-span-3">
-                        <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.25em] uppercase mb-5">
+                    <div className="md:col-span-2">
+                        <h4 className="text-[10px] font-black text-white/40 tracking-[0.25em] uppercase mb-5">
                             Navigasi
                         </h4>
                         <ul className="flex flex-col gap-3">
                             {navLinks.map((link) => (
                                 <li key={link.label}>
-                                    <Link href={link.href} className="text-sm font-semibold text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-white transition-colors">
+                                    <Link href={link.href} className="text-sm font-semibold text-white/60 hover:text-white transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -102,13 +108,13 @@ export default function Footer() {
 
                     {/* Fitur */}
                     <div className="md:col-span-2">
-                        <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.25em] uppercase mb-5">
+                        <h4 className="text-[10px] font-black text-white/40 tracking-[0.25em] uppercase mb-5">
                             Fitur
                         </h4>
                         <ul className="flex flex-col gap-3">
                             {fitur.map((f) => (
                                 <li key={f}>
-                                    <span className="text-sm font-semibold text-gray-600 dark:text-white/60">
+                                    <span className="text-sm font-semibold text-white/60">
                                         {f}
                                     </span>
                                 </li>
@@ -117,16 +123,16 @@ export default function Footer() {
                     </div>
 
                     {/* Kategori */}
-                    <div className="md:col-span-3">
-                        <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.25em] uppercase mb-5">
+                    <div className="md:col-span-4">
+                        <h4 className="text-[10px] font-black text-white/40 tracking-[0.25em] uppercase mb-5">
                             Kategori
                         </h4>
-                        <ul className="flex flex-col gap-3">
+                        <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
                             {categories.map((cat) => (
                                 <li key={cat}>
                                     <Link
                                         href="/#news-content"
-                                        className="text-sm font-semibold text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-white transition-colors"
+                                        className="text-sm font-semibold text-white/60 hover:text-white transition-colors"
                                     >
                                         {cat}
                                     </Link>
@@ -137,8 +143,8 @@ export default function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="mt-12 pt-6 border-t border-gray-100 dark:border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <p className="text-[11px] text-gray-400 dark:text-white/40 font-bold uppercase tracking-[0.15em]">
+                <div className="mt-12 pt-6 border-t border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.15em]">
                         © {year} Briefly. Seluruh hak cipta dilindungi.
                     </p>
                 </div>

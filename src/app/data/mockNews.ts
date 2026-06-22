@@ -15,7 +15,7 @@ export interface NewsItem {
   }[];
   impacts: { name: string; percentage: number }[];
   source: string;
-  sources?: { portal: string; url: string }[];
+  sources?: { portal: string; url: string; title?: string }[];
   sektorPredictions?: { nama_sektor: string; prediksi_dampak: string; tingkat_risiko: string }[];
   time: string;
   image: string;

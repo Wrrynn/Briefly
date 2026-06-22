@@ -94,6 +94,27 @@ function relevanceScore(doc: SearchDoc, query: string): number {
   return score;
 }
 
+// Urutan prioritas kata kunci: kembalikan INDEKS kata query PERTAMA (sesuai
+// urutan ketik) yang cocok dengan dokumen. Mis. query "jokowi prabowo": klaster
+// yang menyebut "jokowi" -> 0, yang hanya "prabowo" -> 1. Dipakai agar hasil
+// pencarian mengelompok berdasarkan kata awal dulu, baru diurut waktu di tiap
+// kelompok. Mengembalikan angka besar bila tak ada kata yang cocok.
+function firstQueryWordRank(doc: SearchDoc, query: string): number {
+  const words = query
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length >= 2);
+  if (!words.length) return 0;
+  const haystack = [doc.title, doc.text, doc.actors, doc.extra]
+    .join(" ")
+    .toLowerCase();
+  for (let i = 0; i < words.length; i++) {
+    if (haystack.includes(words[i])) return i;
+  }
+  return words.length;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
@@ -248,18 +269,25 @@ export async function GET(request: NextRequest) {
   }
 
   // 5. Urutkan berdasarkan waktu sesuai pilihan (asc/desc). Saat mencari,
-  //    relevansi tetap utama lalu waktu sebagai penyeimbang.
+  //    KATA QUERY AWAL diutamakan: hasil dikelompokkan menurut kata query
+  //    pertama yang cocok (mis. "jokowi" dulu, lalu "prabowo"), dan DI DALAM
+  //    tiap kelompok tetap diurut berdasarkan waktu.
   const byTime = (a: any, b: any) => {
     const ta = new Date(a.waktu || 0).getTime();
     const tb = new Date(b.waktu || 0).getTime();
     return sortOrder === "asc" ? ta - tb : tb - ta;
   };
   if (isSearch) {
-    filtered.sort(
-      (a, b) =>
-        relevanceScore(b.search, searchQuery) -
-          relevanceScore(a.search, searchQuery) || byTime(a, b),
-    );
+    const rankCache = new Map<any, number>();
+    const rankOf = (e: any) => {
+      let r = rankCache.get(e);
+      if (r === undefined) {
+        r = firstQueryWordRank(e.search, searchQuery);
+        rankCache.set(e, r);
+      }
+      return r;
+    };
+    filtered.sort((a, b) => rankOf(a) - rankOf(b) || byTime(a, b));
   } else {
     filtered.sort(byTime);
   }
@@ -295,11 +323,13 @@ function getPublisherName(url: string): string {
 }
 
 // Daftar sumber dari berita anggota klaster (dipakai DETAIL): dedup per-URL,
-// diurutkan dari yang judulnya paling relevan dengan judul ringkasan, maks 5.
+// diurutkan dari yang judulnya paling relevan dengan judul ringkasan. SEMUA
+// sumber unik dikembalikan (tanpa batas) supaya popup "Lihat Semua Sumber"
+// menampilkan seluruh berita, dan total sumber konsisten dengan daftar ini.
 export function buildSources(
   members: any[],
   clusterTitle: string,
-): { portal: string; url: string }[] {
+): { portal: string; url: string; title: string }[] {
   const tokenize = (t: string) =>
     new Set(
       (t || "")
@@ -323,11 +353,11 @@ export function buildSources(
     .map((m) => ({
       portal: m.portal_sumber || getPublisherName(m.url_asli),
       url: m.url_asli,
+      title: m.judul || "",
       score: relevance(m.judul || ""),
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map(({ portal, url }) => ({ portal, url }));
+    .map(({ portal, url, title }) => ({ portal, url, title }));
 }
 
 // Transform satu baris KLASTER (hasil summarize) menjadi bentuk untuk frontend.
@@ -379,7 +409,9 @@ export function transformCluster(
   }));
 
   const sources = buildSources(members, summaryTitle);
-  const jumlahBerita = cluster.jumlah_berita ?? sources.length;
+  // Total sumber = jumlah sumber unik yang BENAR-BENAR ditampilkan (konsisten
+  // dengan daftar di popup). Fallback ke jumlah_berita bila daftar kosong.
+  const jumlahBerita = sources.length || cluster.jumlah_berita || 0;
 
   return {
     id: cluster.id_cluster,

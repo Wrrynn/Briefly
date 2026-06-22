@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import NewsHeader from "@/app/components/detail/NewsHeader";
 import NewsMeta from "@/app/components/detail/NewsMeta";
 import NewsContent from "@/app/components/detail/NewsContent";
@@ -20,7 +20,7 @@ type EnrichedNews = NewsItem & {
     aiError?: boolean; 
     url?: string; 
     isAnalyzed?: boolean;
-    sources?: Array<{ portal: string; url: string }>;
+    sources?: Array<{ portal: string; url: string; title?: string }>;
     sentiments?: Array<{ type: string; aktor?: string; percentage?: number; description: string }>;
     sektorPredictions?: Array<{ nama_sektor: string; tingkat_risiko: string; prediksi_dampak: string }>;
 };
@@ -105,6 +105,48 @@ export default function NewsDetailPage() {
             .catch((err) => console.error("Error fetching related news:", err));
     }, []);
 
+    // === CATAT METRIK TRENDING (klik + waktu baca) ===
+    // Dipicu setelah berita valid termuat (pakai news.id agar id_cluster pasti
+    // ada — menghindari error foreign key untuk halaman 404).
+    const trackedId = news?.id;
+    useEffect(() => {
+        if (trackedId == null) return;
+
+        // 1 klik per berita per sesi browser (refresh tidak menggelembungkan).
+        const key = `metrik-klik:${trackedId}`;
+        if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, "1");
+            fetch(`/api/metrik/${trackedId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ klik: 1 }),
+                keepalive: true,
+            }).catch(() => {});
+        }
+
+        // Total waktu baca: dikirim saat tab disembunyikan / komponen dilepas.
+        const start = Date.now();
+        let terkirim = false;
+        const kirimDurasi = () => {
+            if (terkirim) return;
+            const ms = Date.now() - start;
+            if (ms < 2000) return; // abaikan kunjungan super singkat
+            terkirim = true;
+            const blob = new Blob([JSON.stringify({ durasi_ms: ms })], {
+                type: "application/json",
+            });
+            navigator.sendBeacon(`/api/metrik/${trackedId}`, blob);
+        };
+        const onHide = () => {
+            if (document.visibilityState === "hidden") kirimDurasi();
+        };
+        document.addEventListener("visibilitychange", onHide);
+        return () => {
+            document.removeEventListener("visibilitychange", onHide);
+            kirimDurasi();
+        };
+    }, [trackedId]);
+
     // Mencegah flash content / hydration error
     const themeClass = mounted && isDarkMode ? "dark" : "";
 
@@ -183,6 +225,7 @@ export default function NewsDetailPage() {
 
             {/* CONTENT */}
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+                <LayoutGroup>
                 <AnimatePresence mode="wait">
                     {loading ? (
                         <motion.div key="skeleton" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 xl:gap-20">
@@ -216,7 +259,7 @@ export default function NewsDetailPage() {
 
                 {/* RELATED NEWS */}
                 {!loading && news && relatedNews.length > 0 && (
-                    <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4, ease: [0.25, 1, 0.5, 1] }} className="mt-20 pt-10 border-t border-gray-200 dark:border-white/[0.07]">
+                    <motion.section layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.4, ease: [0.25, 1, 0.5, 1], layout: { duration: 0.5, ease: [0.25, 1, 0.5, 1] } }} className="mt-20 pt-10 border-t border-gray-200 dark:border-white/[0.07]">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Berita Lainnya</h2>
                             <Link href="/" className="text-[11px] text-gray-500 dark:text-white/40 hover:text-blue-600 dark:hover:text-white transition-colors uppercase tracking-widest font-bold">
@@ -234,6 +277,7 @@ export default function NewsDetailPage() {
                         </div>
                     </motion.section>
                 )}
+                </LayoutGroup>
             </div>
 
             <Footer />
@@ -275,10 +319,37 @@ function RelatedCard({ item, delay }: { item: EnrichedNews; delay: number }) {
 
 // === AI INSIGHT SIDEBAR (Tetap Sama dengan Null-Safety) ===
 function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolean }) {
+    // Tampilan kartu: "main" (insight) atau "sources" (halaman semua sumber di
+    // dalam kartu yang sama). Pergantian dianimasikan halus, tinggi kartu ikut
+    // menyesuaikan jumlah sumber.
+    const [view, setView] = useState<"main" | "sources">("main");
+
+    // Daftar lengkap sumber (semua berita anggota klaster). Fallback ke sumber
+    // utama bila daftar kosong agar tetap ada tautan.
+    const allSources =
+        news.sources && news.sources.length > 0
+            ? news.sources
+            : [{ portal: news.source, url: news.url || "#", title: news.title }];
+    const totalSources = allSources.length;
+
     return (
-        <div className="rounded-[1.5rem] border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-[#070716]/90 backdrop-blur-xl p-6 md:p-8 relative overflow-hidden flex flex-col shadow-xl shadow-gray-200/50 dark:shadow-[0_0_40px_rgba(0,16,245,0.05)] transition-colors duration-500">
+        <motion.div
+            layout
+            transition={{ layout: { duration: 0.5, ease: [0.25, 1, 0.5, 1] } }}
+            className="rounded-[1.5rem] border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-[#070716]/90 backdrop-blur-xl p-6 md:p-8 relative overflow-hidden flex flex-col shadow-xl shadow-gray-200/50 dark:shadow-[0_0_40px_rgba(0,16,245,0.05)] transition-colors duration-500"
+        >
             <div className="absolute -top-20 -left-20 w-40 h-40 bg-blue-600/10 dark:bg-blue-600/20 rounded-full blur-[60px] pointer-events-none" />
 
+            <AnimatePresence mode="popLayout" initial={false}>
+            {view === "main" ? (
+            <motion.div
+                key="main"
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
+                className="flex flex-col"
+            >
             <div className="flex items-center justify-between mb-8 relative z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center border border-blue-100 dark:border-blue-500/20">
@@ -395,22 +466,87 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
             {/* Sumber Berita */}
             <div className="mt-auto relative z-10">
                 <h4 className="text-[10px] font-black text-gray-400 dark:text-white/40 tracking-[0.2em] uppercase mb-3">
-                    Sumber Berita {news.sources && news.sources.length > 1 ? ` (${news.sources.length})` : ""}
+                    Sumber Berita {totalSources > 1 ? ` (${totalSources})` : ""}
                 </h4>
                 <div className="flex flex-col gap-2">
-                    {(news.sources && news.sources.length > 0
-                        ? news.sources
-                        : [{ portal: news.source, url: news.url || "#" }]
-                    ).map((src, idx) => (
-                        <a key={idx} href={src.url || "#"} target="_blank" rel="noopener noreferrer" className="w-full py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-black text-[11px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-black dark:hover:bg-gray-200 transition-colors flex justify-between items-center gap-2">
-                            <span className="truncate">{src.portal}</span>
+                    {/* Sumber utama */}
+                    <a href={allSources[0]?.url || "#"} target="_blank" rel="noopener noreferrer" className="w-full py-3 px-4 bg-gray-900 dark:bg-white text-white dark:text-black text-[11px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-black dark:hover:bg-gray-200 transition-colors flex justify-between items-center gap-2">
+                        <span className="truncate">{allSources[0]?.portal}</span>
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+
+                    {/* Tombol baru: buka halaman semua sumber DI DALAM kartu */}
+                    {totalSources > 1 && (
+                        <button
+                            onClick={() => setView("sources")}
+                            className="w-full py-3 px-4 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/25 text-[11px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors flex justify-between items-center gap-2"
+                        >
+                            <span className="truncate">Lihat Semua Sumber ({totalSources})</span>
                             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                             </svg>
-                        </a>
-                    ))}
+                        </button>
+                    )}
                 </div>
             </div>
-        </div>
+            </motion.div>
+            ) : (
+            <motion.div
+                key="sources"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 24 }}
+                transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
+                className="flex flex-col"
+            >
+                {/* Header halaman sumber + tombol kembali */}
+                <div className="flex items-center gap-3 mb-7 relative z-10">
+                    <button
+                        onClick={() => setView("main")}
+                        className="p-2 -ml-2 rounded-lg text-gray-400 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        aria-label="Kembali"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <div>
+                        <span className="block text-[13px] font-black uppercase tracking-[0.2em] text-gray-900 dark:text-white/90">Sumber Berita</span>
+                        <span className="block text-[11px] text-gray-500 dark:text-white/40 font-semibold mt-0.5">{totalSources} sumber terkumpul</span>
+                    </div>
+                </div>
+
+                {/* Daftar semua sumber — muncul berurutan (stagger) */}
+                <div className="flex flex-col gap-3 relative z-10">
+                    {allSources.map((src, idx) => (
+                        <motion.a
+                            key={idx}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: 0.12 + idx * 0.05, ease: [0.25, 1, 0.5, 1] }}
+                            href={src.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02] hover:border-blue-500 dark:hover:border-blue-500/30 hover:bg-blue-50/50 dark:hover:bg-blue-500/[0.06] transition-colors"
+                        >
+                            <span className="flex-shrink-0 w-6 h-6 rounded-md bg-gray-900 dark:bg-white text-white dark:text-black text-[11px] font-black flex items-center justify-center mt-0.5">
+                                {idx + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-600 dark:text-blue-400 mb-1">{src.portal}</p>
+                                <p className="text-[13px] font-semibold text-gray-800 dark:text-white/80 leading-snug line-clamp-2">{src.title || src.url}</p>
+                            </div>
+                            <svg className="w-3.5 h-3.5 flex-shrink-0 text-gray-400 dark:text-white/30 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </motion.a>
+                    ))}
+                </div>
+            </motion.div>
+            )}
+            </AnimatePresence>
+        </motion.div>
     );
 }

@@ -24,6 +24,10 @@ export default function Home() {
     const [allNews, setAllNews] = useState<any[]>([]);
     const [loadingNews, setLoadingNews] = useState(true);
 
+    // Trending: berita paling ramai (klik analisis + waktu baca) dari /api/trending
+    const [trendingNews, setTrendingNews] = useState<any[]>([]);
+    const [loadingTrending, setLoadingTrending] = useState(true);
+
     const [currentPage, setCurrentPage] = useState(1);
     const [totalNewsCount, setTotalNewsCount] = useState(0);
 
@@ -47,6 +51,18 @@ export default function Home() {
     useEffect(() => {
         setCurrentPage(1);
     }, [query, category, sentimentFilter, sortOrder]);
+
+    // Ambil daftar trending (terpisah dari daftar utama yang ter-paginasi/filter)
+    useEffect(() => {
+        fetch("/api/trending", { cache: "no-store" })
+            .then((res) => res.json())
+            .then((json) => setTrendingNews(json.data || []))
+            .catch((err) => {
+                console.error("Gagal mengambil trending:", err);
+                setTrendingNews([]);
+            })
+            .finally(() => setLoadingTrending(false));
+    }, []);
 
     // Ambil data dinamis dari API secara terpusat
     useEffect(() => {
@@ -117,8 +133,8 @@ export default function Home() {
                     setQuery={setQuery}
                     isDarkMode={isDarkMode}
                     setIsDarkMode={handleToggleTheme}
-                    trendingNews={allNews.slice(0, 3)}
-                    loadingTrending={loadingNews}
+                    trendingNews={trendingNews}
+                    loadingTrending={loadingTrending}
                     searchActive={query.trim() !== ""}
                     sentimentFilter={sentimentFilter}
                     setSentimentFilter={setSentimentFilter}
