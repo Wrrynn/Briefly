@@ -56,7 +56,7 @@ type SearchDoc = {
 
 // Tanggal kalender (YYYY-MM-DD) menurut zona waktu Indonesia (WIB/Asia/Jakarta).
 // Dipakai untuk membandingkan apakah sebuah berita terbit "hari ini".
-function jakartaDateStr(d: Date): string {
+export function jakartaDateStr(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -65,8 +65,24 @@ function jakartaDateStr(d: Date): string {
   }).format(d);
 }
 
+// Cocokkan KATA UTUH, bukan potongan huruf: "padi" cocok pada "harga padi naik"
+// tetapi TIDAK pada "kepadian". Batas kata = karakter selain huruf/angka, aman
+// untuk nama & teks bahasa Indonesia. Regex di-cache per kata agar hemat.
+const wordReCache = new Map<string, RegExp>();
+function matchWord(haystack: string, word: string): boolean {
+  if (!word) return false;
+  let re = wordReCache.get(word);
+  if (!re) {
+    const esc = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    re = new RegExp(`(?:^|[^a-z0-9])${esc}(?:[^a-z0-9]|$)`, "i");
+    wordReCache.set(word, re);
+  }
+  return re.test(haystack);
+}
+
 // Skor relevansi pencarian terhadap dokumen klaster (gabungan beberapa field
 // dengan bobot berbeda). Mengembalikan 0 jika tak ada kecocokan sama sekali.
+// Semua pencocokan PER KATA UTUH (bukan per huruf).
 function relevanceScore(doc: SearchDoc, query: string): number {
   const qy = query.toLowerCase().trim();
   if (!qy) return 0;
@@ -77,19 +93,18 @@ function relevanceScore(doc: SearchDoc, query: string): number {
   const words = qy.split(/\s+/).filter((w) => w.length >= 2);
 
   let score = 0;
-  // Cocok frasa penuh — paling kuat.
-  if (judul.includes(qy)) score += 100;
-  if (judul.startsWith(qy)) score += 50;
-  if (aktor.includes(qy)) score += 60;
-  if (isi.includes(qy)) score += 15;
-  if (extra.includes(qy)) score += 12;
+  // Cocok frasa penuh (sebagai rangkaian kata utuh) — paling kuat.
+  if (matchWord(judul, qy)) score += 100;
+  if (matchWord(aktor, qy)) score += 60;
+  if (matchWord(isi, qy)) score += 15;
+  if (matchWord(extra, qy)) score += 12;
 
   // Cocok per kata — agar pencarian beberapa kata tetap relevan.
   for (const w of words) {
-    if (judul.includes(w)) score += 10;
-    if (aktor.includes(w)) score += 8;
-    if (isi.includes(w)) score += 2;
-    if (extra.includes(w)) score += 2;
+    if (matchWord(judul, w)) score += 10;
+    if (matchWord(aktor, w)) score += 8;
+    if (matchWord(isi, w)) score += 2;
+    if (matchWord(extra, w)) score += 2;
   }
   return score;
 }
@@ -110,7 +125,7 @@ function firstQueryWordRank(doc: SearchDoc, query: string): number {
     .join(" ")
     .toLowerCase();
   for (let i = 0; i < words.length; i++) {
-    if (haystack.includes(words[i])) return i;
+    if (matchWord(haystack, words[i])) return i;
   }
   return words.length;
 }
@@ -237,19 +252,22 @@ export async function GET(request: NextRequest) {
 
   const isSearch = searchQuery.trim() !== "";
 
-  // 2.5 HANYA berita pada HARI TERAKHIR yang ada di database (bukan tanggal
-  //     sistem). Cari tanggal kalender (WIB) paling baru di antara klaster,
-  //     lalu tampilkan hanya klaster pada tanggal tersebut.
-  const latestDate = enriched.reduce<string | null>((acc, e) => {
-    if (!e.waktu) return acc;
-    const d = jakartaDateStr(new Date(e.waktu));
-    return !acc || d > acc ? d : acc;
-  }, null);
-  let filtered = latestDate
-    ? enriched.filter(
-        (e) => e.waktu && jakartaDateStr(new Date(e.waktu)) === latestDate,
-      )
-    : enriched;
+  // 2.5 Saat MENCARI: telusuri SELURUH data (semua tanggal) — pencarian bersifat
+  //     global ke seantero database. Saat TIDAK mencari: tampilkan HANYA berita
+  //     pada HARI TERAKHIR yang ada di database (bukan tanggal sistem).
+  let filtered = enriched;
+  if (!isSearch) {
+    const latestDate = enriched.reduce<string | null>((acc, e) => {
+      if (!e.waktu) return acc;
+      const d = jakartaDateStr(new Date(e.waktu));
+      return !acc || d > acc ? d : acc;
+    }, null);
+    filtered = latestDate
+      ? enriched.filter(
+          (e) => e.waktu && jakartaDateStr(new Date(e.waktu)) === latestDate,
+        )
+      : enriched;
+  }
 
   // 3. Filter kategori — pakai kategori yang SAMA dengan label kartu.
   if (categoryFilter !== "Semua") {
