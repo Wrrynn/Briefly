@@ -5,5 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
+  const res = NextResponse.redirect(new URL("/login", request.url), { status: 303 });
+  // Reset penanda mulai sesi (timer 6 jam) agar login berikutnya mulai dari awal.
+  res.cookies.set("briefly_session_start", "", { path: "/", maxAge: 0 });
+  return res;
 }
