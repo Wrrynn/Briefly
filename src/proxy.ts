@@ -79,6 +79,7 @@ export async function proxy(request: NextRequest) {
   // halaman setelah login dan mengembalikan JSON, bukan HTML redirect).
   const path = request.nextUrl.pathname;
   const isPublic =
+    path === "/" || // root publik: server component menampilkan Landing/NewsHome
     path === "/login" ||
     path === "/register" ||
     path.startsWith("/auth") ||

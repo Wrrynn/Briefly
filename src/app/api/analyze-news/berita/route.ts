@@ -41,7 +41,7 @@ export async function q(
 // Gabungkan sentimen beberapa aktor menjadi satu label untuk kartu/filter:
 // semua Positif -> "Positif", semua Negatif -> "Negatif",
 // ada Positif & Negatif -> "Campuran", selain itu -> "Netral".
-function combineSentiments(aktors: any[]): string {
+export function combineSentiments(aktors: any[]): string {
   if (!aktors?.length) return "Netral";
   const types = new Set(aktors.map((a) => a.sentimen));
   const hasPositif = types.has("Positif");
@@ -473,7 +473,7 @@ const CATEGORY_PATTERNS: [string, RegExp][] = [
 // Pilih kategori dengan kecocokan kata kunci TERBANYAK (judul diberi bobot lebih
 // besar). Default "Sosial & Masyarakat" (bucket umum/peristiwa) bila tak ada
 // kata kunci yang cocok — bukan "Ekonomi" yang menyesatkan.
-function detectCategory(judul: string, isi: string): string {
+export function detectCategory(judul: string, isi: string): string {
   const judulL = (judul || "").toLowerCase();
   const teks = `${judul} ${isi}`.toLowerCase();
 

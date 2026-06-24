@@ -145,7 +145,7 @@ export default function Footer() {
                 {/* Bottom bar */}
                 <div className="mt-12 pt-6 border-t border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.15em]">
-                        © {year} Briefly. Seluruh hak cipta dilindungi.
+                        © {year} Briefly.
                     </p>
                 </div>
             </div>

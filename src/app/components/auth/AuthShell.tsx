@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Footer from "@/app/components/Footer";
 
 // Pembungkus bertema "glassmorphism": latar navy gelap + blob gradien yang di-blur
 // (aurora) supaya efek backdrop-blur pada kartu terlihat. Komponen presentasional
@@ -25,9 +26,15 @@ export function Aurora() {
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#05051a] px-4 py-10">
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#05051a]">
       <Aurora />
-      <div className="relative w-full max-w-md">{children}</div>
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">{children}</div>
+      </div>
+      {/* Footer wajib di semua halaman (login & register) */}
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </main>
   );
 }
