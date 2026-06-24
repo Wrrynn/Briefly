@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 // Koneksi ke Supabase kadang lambat/putus. Helper ini mengulang query (rebuild
 // tiap percobaan) dengan batas waktu per percobaan, agar gangguan sesaat tidak
@@ -10,6 +10,15 @@ export async function q(
   tries = 2,
   perTryMs = 50000,
 ): Promise<SbResult> {
+  // Bila Supabase belum dikonfigurasi (SUPABASE_SERVICE_ROLE_KEY kosong), jangan
+  // mencoba query sama sekali — kembalikan error instan agar route membalas JSON
+  // cepat, bukan menumpuk retry yang lambat.
+  if (!isSupabaseConfigured) {
+    return {
+      data: null,
+      error: new Error("SUPABASE_SERVICE_ROLE_KEY belum diisi di .env.local"),
+    };
+  }
   let last: SbResult | null = null;
   for (let i = 0; i < tries; i++) {
     try {
