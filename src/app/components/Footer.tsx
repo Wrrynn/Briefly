@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import LikeButton from "@/app/components/LikeButton";
 
 const team = [
     { role: "Project Manager", name: "I Made Dwi Wiryawan Raditya (Ditya)", email: "dityawryn.gm@gmail.com" },
@@ -143,10 +144,16 @@ export default function Footer() {
                 </div>
 
                 {/* Bottom bar */}
-                <div className="mt-12 pt-6 border-t border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="mt-12 pt-6 border-t border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.15em]">
                         © {year} Briefly.
                     </p>
+                    <div className="flex items-center gap-3">
+                        <span className="hidden sm:inline text-[11px] text-white/40 font-bold uppercase tracking-[0.15em]">
+                            Suka aplikasi ini?
+                        </span>
+                        <LikeButton />
+                    </div>
                 </div>
             </div>
 

@@ -13,6 +13,7 @@ import LoadingSkeleton, {
 } from "@/app/components/detail/LoadingSkeleton";
 import Footer from "@/app/components/Footer";
 import type { NewsItem } from "@/app/data/mockNews";
+import { createClient } from "@/lib/supabase/client";
 
 // Tambahkan tipe eksplisit untuk data source dan sentiments agar lebih aman
 type EnrichedNews = NewsItem & { 
@@ -121,7 +122,16 @@ export default function NewsDetailPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ klik: 1 }),
                 keepalive: true,
-            }).catch(() => {});
+            })
+                .then((r) => r.json())
+                .then((j: { views?: number }) => {
+                    // Jumlah dilihat terbaru dari server → tampil +1 seketika.
+                    const v = j?.views;
+                    if (typeof v === "number") {
+                        setNews((prev) => (prev ? { ...prev, views: v } : prev));
+                    }
+                })
+                .catch(() => {});
         }
 
         // Total waktu baca: dikirim saat tab disembunyikan / komponen dilepas.
@@ -144,6 +154,35 @@ export default function NewsDetailPage() {
         return () => {
             document.removeEventListener("visibilitychange", onHide);
             kirimDurasi();
+        };
+    }, [trackedId]);
+
+    // === LIVE: jumlah dilihat update REAL-TIME (Supabase Realtime) ===
+    // Saat klik dari sesi lain menambah jumlah_klik klaster ini, angka langsung
+    // ikut naik tanpa reload.
+    useEffect(() => {
+        if (trackedId == null) return;
+        const supabase = createClient();
+        const channel = supabase
+            .channel(`metrik-${trackedId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "tabel_metrik",
+                    filter: `id_cluster=eq.${trackedId}`,
+                },
+                (payload: { new?: { jumlah_klik?: number } }) => {
+                    const v = payload?.new?.jumlah_klik;
+                    if (typeof v === "number") {
+                        setNews((prev) => (prev ? { ...prev, views: v } : prev));
+                    }
+                },
+            )
+            .subscribe();
+        return () => {
+            supabase.removeChannel(channel);
         };
     }, [trackedId]);
 

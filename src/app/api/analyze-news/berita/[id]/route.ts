@@ -62,7 +62,17 @@ export async function GET(
       .eq("id_cluster", id),
   );
 
+  // Jumlah dilihat (klik analisis) klaster ini.
+  const { data: metrikData } = await q(() =>
+    supabase
+      .from("tabel_metrik")
+      .select("jumlah_klik")
+      .eq("id_cluster", id)
+      .maybeSingle(),
+  );
+  const views = Number((metrikData as any)?.jumlah_klik) || 0;
+
   return NextResponse.json({
-    data: transformCluster(data, sektorData || []),
+    data: transformCluster(data, sektorData || [], undefined, views),
   });
 }

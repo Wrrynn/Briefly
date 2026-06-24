@@ -44,10 +44,20 @@ export default function NewsCard({ data }: any) {
           )}
         </div>
 
-        {/* Waktu */}
-        <p className="text-[10px] text-gray-400 dark:text-white/50 font-bold uppercase tracking-widest mb-4">
-          {data.time}
-        </p>
+        {/* Waktu + jumlah dilihat (klik analisis). Disembunyikan bila 0. */}
+        <div className="flex items-center gap-2 mb-4 text-[10px] text-gray-400 dark:text-white/50 font-bold uppercase tracking-widest">
+          <span>{data.time}</span>
+          {data.views > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <span className="opacity-40">·</span>
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12z" />
+                <circle cx="12" cy="12" r="2.5" />
+              </svg>
+              {Number(data.views).toLocaleString("id-ID")} dilihat
+            </span>
+          )}
+        </div>
 
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-white leading-snug mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 tracking-tight line-clamp-2">
           {data.title}

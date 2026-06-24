@@ -7,6 +7,12 @@ export default function NewsMeta({ news }: { news: NewsItem }) {
                 <p className="text-[11px] text-gray-500 dark:text-white/40 uppercase tracking-widest font-bold mb-0.5 transition-colors">Dipublikasikan</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-white/90 transition-colors">{news.publishedAt || "Baru saja"}</p>
             </div>
+            {news.views ? (
+                <div>
+                    <p className="text-[11px] text-gray-500 dark:text-white/40 uppercase tracking-widest font-bold mb-0.5 transition-colors">Dilihat</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white/90 transition-colors">{news.views.toLocaleString("id-ID")} kali</p>
+                </div>
+            ) : null}
         </div>
     );
 }

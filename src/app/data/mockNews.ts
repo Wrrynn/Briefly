@@ -26,4 +26,6 @@ export interface NewsItem {
   keywords?: string[];
   readTime?: number;
   publishedAt?: string;
+  // Jumlah dilihat (klik membuka analisis), dari tabel_metrik.
+  views?: number;
 }

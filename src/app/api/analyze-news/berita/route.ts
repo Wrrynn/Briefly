@@ -319,11 +319,27 @@ export async function GET(request: NextRequest) {
     filtered.sort(byTime);
   }
 
-  // 6. Paginasi + transform (kategori diteruskan agar konsisten dgn filter).
+  // 6. Jumlah dilihat (klik analisis) per klaster — ditampilkan di kartu.
+  const metrikRes = await q(() =>
+    supabase.from("tabel_metrik").select("id_cluster, jumlah_klik"),
+  );
+  const metrikMap: Record<number, number> = {};
+  ((metrikRes.data as any[]) || []).forEach((m) => {
+    if (m.id_cluster != null) metrikMap[m.id_cluster] = Number(m.jumlah_klik) || 0;
+  });
+
+  // 7. Paginasi + transform (kategori & jumlah-dilihat diteruskan).
   const count = filtered.length;
   const transformed = filtered
     .slice(from, to + 1)
-    .map((e) => transformCluster(e.raw, sektorMap[e.raw.id_cluster] || [], e.category));
+    .map((e) =>
+      transformCluster(
+        e.raw,
+        sektorMap[e.raw.id_cluster] || [],
+        e.category,
+        metrikMap[e.raw.id_cluster] || 0,
+      ),
+    );
 
   return NextResponse.json({ data: transformed, total: count });
 }
@@ -394,6 +410,7 @@ export function transformCluster(
   cluster: any,
   sektorList: any[] = [],
   categoryOverride?: string,
+  views = 0,
 ) {
   const members: any[] = cluster.tabel_berita || [];
   const aktors = cluster.tabel_sentimen_aktor || [];
@@ -457,6 +474,7 @@ export function transformCluster(
     ],
     source: sources[0]?.portal || (jumlahBerita ? `${jumlahBerita} sumber` : "Beberapa sumber"),
     sourceCount: jumlahBerita,
+    views,
     url: sources[0]?.url || "#",
     sources: sources,
     sektorPredictions: sektorPredictions,
