@@ -149,9 +149,6 @@ export default function Footer() {
                         © {year} Briefly.
                     </p>
                     <div className="flex items-center gap-3">
-                        <span className="hidden sm:inline text-[11px] text-white/40 font-bold uppercase tracking-[0.15em]">
-                            Suka aplikasi ini?
-                        </span>
                         <LikeButton />
                     </div>
                 </div>
