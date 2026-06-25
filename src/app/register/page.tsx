@@ -64,7 +64,11 @@ export default function RegisterPage() {
       options: { redirectTo: `${window.location.origin}/auth/callback?next=/` },
     });
     if (error) {
-      setError("Gagal mendaftar dengan Google.");
+      setError(
+        String(error.message).includes("provider is not enabled")
+          ? "Login Google belum diaktifkan di Supabase. Sementara gunakan email/kata sandi."
+          : `Gagal dengan Google: ${error.message}`,
+      );
       setLoading(false);
     }
   }
