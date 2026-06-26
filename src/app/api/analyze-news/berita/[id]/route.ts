@@ -58,7 +58,9 @@ export async function GET(
   const { data: sektorData } = await q(() =>
     supabase
       .from("tabel_sektor")
-      .select("nama_sektor, prediksi_dampak, tingkat_risiko")
+      .select(
+        "nama_sektor, prediksi_dampak, tingkat_risiko, objek_terdampak, sentimen_objek, persentase_objek",
+      )
       .eq("id_cluster", id),
   );
 

@@ -23,7 +23,7 @@ type EnrichedNews = NewsItem & {
     isAnalyzed?: boolean;
     sources?: Array<{ portal: string; url: string; title?: string }>;
     sentiments?: Array<{ type: string; aktor?: string; percentage?: number; description: string }>;
-    sektorPredictions?: Array<{ nama_sektor: string; tingkat_risiko: string; prediksi_dampak: string }>;
+    sektorPredictions?: Array<{ nama_sektor: string; tingkat_risiko: string; prediksi_dampak: string; objek_terdampak?: string | null; sentimen_objek?: string | null; persentase_objek?: number | null }>;
 };
 
 export default function NewsDetailPage() {
@@ -483,6 +483,36 @@ function AIInsightSidebar({ news, isLive }: { news: EnrichedNews; isLive: boolea
                                         </span>
                                     </div>
                                     <p className="text-[13px] text-gray-700 dark:text-white/70 leading-relaxed font-medium text-justify">{sek.prediksi_dampak}</p>
+
+                                    {/* Objek terdampak + sentimen terhadap objek + persentase (tampil bila ada) */}
+                                    {(sek.objek_terdampak || sek.sentimen_objek || sek.persentase_objek != null) && (
+                                        <div className="mt-3 pt-3 border-t border-gray-200/70 dark:border-white/[0.06] flex flex-wrap items-center gap-2">
+                                            {sek.objek_terdampak && (
+                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-300">
+                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                                                    {sek.objek_terdampak}
+                                                </span>
+                                            )}
+                                            {sek.sentimen_objek && (
+                                                <span
+                                                    className={`text-[10px] font-black uppercase tracking-[0.12em] px-2.5 py-1 rounded-md border ${
+                                                        (sek.sentimen_objek || "").toLowerCase().includes("positif")
+                                                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                                            : (sek.sentimen_objek || "").toLowerCase().includes("negatif")
+                                                                ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-400"
+                                                                : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-400"
+                                                    }`}
+                                                >
+                                                    {sek.sentimen_objek}
+                                                </span>
+                                            )}
+                                            {sek.persentase_objek != null && (
+                                                <span className="ml-auto text-[12px] font-black text-gray-900 dark:text-white/90">
+                                                    {sek.persentase_objek}%
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

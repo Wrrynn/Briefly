@@ -157,7 +157,9 @@ export async function GET(request: NextRequest) {
   const sektorRes = await q(() =>
     supabase
       .from("tabel_sektor")
-      .select("id_cluster, nama_sektor, prediksi_dampak, tingkat_risiko"),
+      .select(
+        "id_cluster, nama_sektor, prediksi_dampak, tingkat_risiko, objek_terdampak, sentimen_objek, persentase_objek",
+      ),
   );
   if (sektorRes.error) {
     console.error("Supabase Error (sektor):", sektorRes.error);
@@ -445,6 +447,9 @@ export function transformCluster(
     nama_sektor: s.nama_sektor,
     prediksi_dampak: s.prediksi_dampak,
     tingkat_risiko: s.tingkat_risiko,
+    objek_terdampak: s.objek_terdampak ?? null,
+    sentimen_objek: s.sentimen_objek ?? null,
+    persentase_objek: s.persentase_objek ?? null,
   }));
 
   const impacts = aktors.slice(0, 1).map((a: any) => ({
