@@ -1,284 +1,75 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getSessionUser, unauthorized } from "@/lib/auth";
+import {
+  fetchSektorFor,
+  fetchViewsFor,
+  filterRentangHari,
+  firstQueryWordRank,
+  getClusterIndex,
+  latestDateOf,
+  oldestDateOf,
+  relevanceScore,
+  RENTANG_DEFAULT,
+  RENTANG_VALID,
+  transformCluster,
+  type ClusterEntry,
+} from "@/lib/news";
 
-// Koneksi ke Supabase kadang lambat/putus. Helper ini mengulang query (rebuild
-// tiap percobaan) dengan batas waktu per percobaan, agar gangguan sesaat tidak
-// membuat seluruh data kosong tanpa pesan error.
-type SbResult = { data: any; error: any; count?: number | null };
-export async function q(
-  factory: () => PromiseLike<any>,
-  tries = 2,
-  perTryMs = 50000,
-): Promise<SbResult> {
-  // Bila Supabase belum dikonfigurasi (SUPABASE_SERVICE_ROLE_KEY kosong), jangan
-  // mencoba query sama sekali — kembalikan error instan agar route membalas JSON
-  // cepat, bukan menumpuk retry yang lambat.
-  if (!isSupabaseConfigured) {
-    return {
-      data: null,
-      error: new Error("SUPABASE_SERVICE_ROLE_KEY belum diisi di .env.local"),
-    };
-  }
-  let last: SbResult | null = null;
-  for (let i = 0; i < tries; i++) {
-    try {
-      const res = (await Promise.race([
-        factory(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), perTryMs),
-        ),
-      ])) as SbResult;
-      if (!res.error) return res;
-      last = res;
-    } catch (e) {
-      last = { data: null, error: e };
-    }
-    await new Promise((r) => setTimeout(r, 300 * (i + 1)));
-  }
-  return last ?? { data: null, error: new Error("Supabase tidak merespons") };
-}
+export const dynamic = "force-dynamic";
 
-// Gabungkan sentimen beberapa aktor menjadi satu label untuk kartu/filter:
-// semua Positif -> "Positif", semua Negatif -> "Negatif",
-// ada Positif & Negatif -> "Campuran", selain itu -> "Netral".
-export function combineSentiments(aktors: any[]): string {
-  if (!aktors?.length) return "Netral";
-  const types = new Set(aktors.map((a) => a.sentimen));
-  const hasPositif = types.has("Positif");
-  const hasNegatif = types.has("Negatif");
-  if (hasPositif && hasNegatif) return "Campuran";
-  if (hasPositif) return "Positif";
-  if (hasNegatif) return "Negatif";
-  return "Netral";
-}
-
-// Dokumen yang bisa dicari per klaster. Pencarian menjangkau judul ringkasan,
-// isi ringkasan, nama aktor, serta info pendukung (judul berita anggota, portal
-// sumber, alasan sentimen) sehingga user bisa mencari "berdasarkan judul, isi
-// berita, aktor, dll".
-type SearchDoc = {
-  title: string; // judul ringkasan klaster
-  text: string; // isi ringkasan klaster
-  actors: string; // nama aktor (cocok kuat)
-  extra: string; // judul berita anggota + portal + alasan sentimen
-};
-
-// Tanggal kalender (YYYY-MM-DD) menurut zona waktu Indonesia (WIB/Asia/Jakarta).
-// Dipakai untuk membandingkan apakah sebuah berita terbit "hari ini".
-export function jakartaDateStr(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-}
-
-// Cocokkan KATA UTUH, bukan potongan huruf: "padi" cocok pada "harga padi naik"
-// tetapi TIDAK pada "kepadian". Batas kata = karakter selain huruf/angka, aman
-// untuk nama & teks bahasa Indonesia. Regex di-cache per kata agar hemat.
-const wordReCache = new Map<string, RegExp>();
-function matchWord(haystack: string, word: string): boolean {
-  if (!word) return false;
-  let re = wordReCache.get(word);
-  if (!re) {
-    const esc = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    re = new RegExp(`(?:^|[^a-z0-9])${esc}(?:[^a-z0-9]|$)`, "i");
-    wordReCache.set(word, re);
-  }
-  return re.test(haystack);
-}
-
-// Skor relevansi pencarian terhadap dokumen klaster (gabungan beberapa field
-// dengan bobot berbeda). Mengembalikan 0 jika tak ada kecocokan sama sekali.
-// Semua pencocokan PER KATA UTUH (bukan per huruf).
-function relevanceScore(doc: SearchDoc, query: string): number {
-  const qy = query.toLowerCase().trim();
-  if (!qy) return 0;
-  const judul = (doc.title || "").toLowerCase();
-  const isi = (doc.text || "").toLowerCase();
-  const aktor = (doc.actors || "").toLowerCase();
-  const extra = (doc.extra || "").toLowerCase();
-  const words = qy.split(/\s+/).filter((w) => w.length >= 2);
-
-  let score = 0;
-  // Cocok frasa penuh (sebagai rangkaian kata utuh) — paling kuat.
-  if (matchWord(judul, qy)) score += 100;
-  if (matchWord(aktor, qy)) score += 60;
-  if (matchWord(isi, qy)) score += 15;
-  if (matchWord(extra, qy)) score += 12;
-
-  // Cocok per kata — agar pencarian beberapa kata tetap relevan.
-  for (const w of words) {
-    if (matchWord(judul, w)) score += 10;
-    if (matchWord(aktor, w)) score += 8;
-    if (matchWord(isi, w)) score += 2;
-    if (matchWord(extra, w)) score += 2;
-  }
-  return score;
-}
-
-// Urutan prioritas kata kunci: kembalikan INDEKS kata query PERTAMA (sesuai
-// urutan ketik) yang cocok dengan dokumen. Mis. query "jokowi prabowo": klaster
-// yang menyebut "jokowi" -> 0, yang hanya "prabowo" -> 1. Dipakai agar hasil
-// pencarian mengelompok berdasarkan kata awal dulu, baru diurut waktu di tiap
-// kelompok. Mengembalikan angka besar bila tak ada kata yang cocok.
-function firstQueryWordRank(doc: SearchDoc, query: string): number {
-  const words = query
-    .toLowerCase()
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length >= 2);
-  if (!words.length) return 0;
-  const haystack = [doc.title, doc.text, doc.actors, doc.extra]
-    .join(" ")
-    .toLowerCase();
-  for (let i = 0; i < words.length; i++) {
-    if (matchWord(haystack, words[i])) return i;
-  }
-  return words.length;
-}
+// Batas atas item per halaman. Sebelumnya `limit` dipakai apa adanya, jadi
+// ?limit=100000 memaksa server mengirim seluruh isi database dalam satu balasan.
+const MAX_LIMIT = 50;
 
 export async function GET(request: NextRequest) {
+  // Endpoint ini memakai client service-role (bypass RLS), jadi identitas WAJIB
+  // diverifikasi lebih dulu — proxy.ts sengaja tidak memblokir /api agar API
+  // membalas JSON, bukan redirect HTML.
+  const user = await getSessionUser();
+  if (!user) return unauthorized();
+
   const { searchParams } = new URL(request.url);
 
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+  const limit = Math.min(
+    MAX_LIMIT,
+    Math.max(1, parseInt(searchParams.get("limit") || "10") || 10),
+  );
   const categoryFilter = searchParams.get("category") || "Semua";
   const searchQuery = searchParams.get("search") || "";
   const sentimentFilter = searchParams.get("sentiment") || "Semua";
   // Urutan waktu: "desc" (terbaru dulu, default) atau "asc" (terlama dulu).
   const sortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
+  // Rentang hari (mundur dari tanggal TERBARU DI DATABASE). 0 = seluruh arsip.
+  const daysRaw = parseInt(searchParams.get("days") ?? "");
+  const days = (RENTANG_VALID as readonly number[]).includes(daysRaw)
+    ? daysRaw
+    : RENTANG_DEFAULT;
 
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
-  // 0. Ambil semua prediksi sektor → map per klaster (sektor opsional).
-  const sektorRes = await q(() =>
-    supabase
-      .from("tabel_sektor")
-      .select(
-        "id_cluster, nama_sektor, prediksi_dampak, tingkat_risiko, objek_terdampak, sentimen_objek, persentase_objek",
-      ),
-  );
-  if (sektorRes.error) {
-    console.error("Supabase Error (sektor):", sektorRes.error);
+  // 1. Indeks klaster (kategori, sentimen gabungan, dokumen pencarian) — sudah
+  //    dihitung sekali lalu di-cache, tidak dibangun ulang tiap request.
+  let entries: ClusterEntry[];
+  try {
+    entries = await getClusterIndex();
+  } catch (e: any) {
+    console.error("Supabase Error (cluster index):", e);
     return NextResponse.json(
       { error: "Gagal memuat data analisis. Coba muat ulang." },
       { status: 503 },
     );
   }
-  const sektorMap: Record<number, any[]> = {};
-  ((sektorRes.data as any[]) || []).forEach((s) => {
-    if (s.id_cluster == null) return;
-    (sektorMap[s.id_cluster] ||= []).push(s);
-  });
-
-  // 1. Ambil SEMUA klaster yang sudah di-summarize (judul_summary terisi).
-  //    Jumlahnya kecil (ratusan), jadi filter kategori/pencarian/urut/paginasi
-  //    dilakukan di sini agar KATEGORI DI KARTU == DASAR FILTER (konsisten).
-  const { data, error } = await q(() =>
-    supabase
-      .from("tabel_cluster")
-      .select(
-        `
-        id_cluster,
-        judul_summary,
-        summary_text,
-        waktu_terbentuk,
-        jumlah_berita,
-        tabel_sentimen_aktor (
-          nama_aktor,
-          sentimen,
-          persentase,
-          alasan
-        ),
-        tabel_berita (
-          judul,
-          portal_sumber,
-          url_asli,
-          created_at
-        )
-      `,
-      )
-      .not("judul_summary", "is", null)
-      .order("waktu_terbentuk", { ascending: false })
-      .limit(3000),
-  );
-  if (error) {
-    console.error("Supabase Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // 2. Hitung kategori SEKALI per klaster (dipakai untuk label DAN filter).
-  const enriched = ((data || []) as any[]).map((c: any) => {
-    const aktors = c.tabel_sentimen_aktor || [];
-    const members = c.tabel_berita || [];
-
-    // Waktu efektif klaster = created_at anggota TERBARU (fallback waktu_terbentuk).
-    // HARUS sama dengan perhitungan di transformCluster agar urutan & filter
-    // "hari terakhir" konsisten dengan WAKTU yang TAMPIL di kartu.
-    const repCreatedAt = (members as any[]).reduce(
-      (acc: string | null, m: any) => {
-        if (!m?.created_at) return acc;
-        if (!acc || new Date(m.created_at).getTime() > new Date(acc).getTime()) {
-          return m.created_at;
-        }
-        return acc;
-      },
-      null as string | null,
-    );
-    const waktu = repCreatedAt || c.waktu_terbentuk;
-
-    // Sentimen kartu = gabungan sentimen aktor (maks 3, sama dgn yang tampil):
-    // semua Positif -> "Positif", semua Negatif -> "Negatif",
-    // ada Positif & Negatif -> "Campuran".
-    const combinedSentiment = combineSentiments(aktors.slice(0, 3));
-
-    // Dokumen pencarian: nama aktor (cocok kuat) + info pendukung (judul berita
-    // anggota, portal sumber, alasan sentimen) supaya pencarian menjangkau
-    // judul, isi, aktor, dan sumber.
-    const actors = aktors.map((a: any) => a.nama_aktor || "").join(" ");
-    const extra = [
-      ...members.map((m: any) => m.judul || ""),
-      ...members.map((m: any) => m.portal_sumber || ""),
-      ...aktors.map((a: any) => a.alasan || ""),
-    ].join(" ");
-
-    return {
-      raw: c,
-      category: detectCategory(c.judul_summary || "", c.summary_text || ""),
-      title: c.judul_summary || "",
-      text: c.summary_text || "",
-      waktu,
-      sentiment: combinedSentiment,
-      search: {
-        title: c.judul_summary || "",
-        text: c.summary_text || "",
-        actors,
-        extra,
-      } as SearchDoc,
-    };
-  });
 
   const isSearch = searchQuery.trim() !== "";
 
-  // 2.5 Saat MENCARI: telusuri SELURUH data (semua tanggal) — pencarian bersifat
-  //     global ke seantero database. Saat TIDAK mencari: tampilkan HANYA berita
-  //     pada HARI TERAKHIR yang ada di database (bukan tanggal sistem).
-  let filtered = enriched;
-  if (!isSearch) {
-    const latestDate = enriched.reduce<string | null>((acc, e) => {
-      if (!e.waktu) return acc;
-      const d = jakartaDateStr(new Date(e.waktu));
-      return !acc || d > acc ? d : acc;
-    }, null);
-    filtered = latestDate
-      ? enriched.filter(
-          (e) => e.waktu && jakartaDateStr(new Date(e.waktu)) === latestDate,
-        )
-      : enriched;
-  }
+  // 2. Saat MENCARI: telusuri SELURUH data (semua tanggal) — pencarian bersifat
+  //    global ke seantero database. Saat TIDAK mencari: batasi ke rentang hari
+  //    yang dipilih pengguna (default 7 hari terakhir yang ADA DI DATABASE).
+  let filtered: ClusterEntry[] = isSearch
+    ? entries
+    : filterRentangHari(entries, days);
 
   // 3. Filter kategori — pakai kategori yang SAMA dengan label kartu.
   if (categoryFilter !== "Semua") {
@@ -292,23 +83,21 @@ export async function GET(request: NextRequest) {
 
   // 4. Filter pencarian — judul/isi ringkasan + aktor + judul berita anggota & portal.
   if (isSearch) {
-    filtered = filtered.filter(
-      (e) => relevanceScore(e.search, searchQuery) > 0,
-    );
+    filtered = filtered.filter((e) => relevanceScore(e.search, searchQuery) > 0);
   }
 
   // 5. Urutkan berdasarkan waktu sesuai pilihan (asc/desc). Saat mencari,
   //    KATA QUERY AWAL diutamakan: hasil dikelompokkan menurut kata query
   //    pertama yang cocok (mis. "jokowi" dulu, lalu "prabowo"), dan DI DALAM
   //    tiap kelompok tetap diurut berdasarkan waktu.
-  const byTime = (a: any, b: any) => {
+  const byTime = (a: ClusterEntry, b: ClusterEntry) => {
     const ta = new Date(a.waktu || 0).getTime();
     const tb = new Date(b.waktu || 0).getTime();
     return sortOrder === "asc" ? ta - tb : tb - ta;
   };
   if (isSearch) {
-    const rankCache = new Map<any, number>();
-    const rankOf = (e: any) => {
+    const rankCache = new Map<ClusterEntry, number>();
+    const rankOf = (e: ClusterEntry) => {
       let r = rankCache.get(e);
       if (r === undefined) {
         r = firstQueryWordRank(e.search, searchQuery);
@@ -316,235 +105,40 @@ export async function GET(request: NextRequest) {
       }
       return r;
     };
-    filtered.sort((a, b) => rankOf(a) - rankOf(b) || byTime(a, b));
+    // Salin dulu: `filtered` bisa masih menunjuk ke array indeks yang di-cache,
+    // dan sort() mengubah array di tempat.
+    filtered = [...filtered].sort((a, b) => rankOf(a) - rankOf(b) || byTime(a, b));
   } else {
-    filtered.sort(byTime);
+    filtered = [...filtered].sort(byTime);
   }
 
-  // 6. Jumlah dilihat (klik analisis) per klaster — ditampilkan di kartu.
-  const metrikRes = await q(() =>
-    supabase.from("tabel_metrik").select("id_cluster, jumlah_klik"),
-  );
-  const metrikMap: Record<number, number> = {};
-  ((metrikRes.data as any[]) || []).forEach((m) => {
-    if (m.id_cluster != null) metrikMap[m.id_cluster] = Number(m.jumlah_klik) || 0;
-  });
-
-  // 7. Paginasi + transform (kategori & jumlah-dilihat diteruskan).
+  // 6. Paginasi DULU, baru ambil data pendukung untuk id di halaman ini saja.
+  //    Sebelumnya seluruh tabel_sektor dan tabel_metrik ditarik utuh hanya untuk
+  //    melengkapi 12 kartu.
   const count = filtered.length;
-  const transformed = filtered
-    .slice(from, to + 1)
-    .map((e) =>
-      transformCluster(
-        e.raw,
-        sektorMap[e.raw.id_cluster] || [],
-        e.category,
-        metrikMap[e.raw.id_cluster] || 0,
-      ),
-    );
+  const pageEntries = filtered.slice(from, to + 1);
+  const pageIds = pageEntries.map((e) => e.id);
 
-  return NextResponse.json({ data: transformed, total: count });
-}
+  const [sektorMap, viewsMap] = await Promise.all([
+    fetchSektorFor(pageIds),
+    fetchViewsFor(pageIds),
+  ]);
 
-// =========================================================
-// HELPER FUNCTIONS
-// =========================================================
+  const transformed = pageEntries.map((e) =>
+    transformCluster(e.raw, sektorMap[e.id] || [], e.category, viewsMap[e.id] || 0),
+  );
 
-function getPublisherName(url: string): string {
-  try {
-    const domain = new URL(url).hostname.toLowerCase();
-    if (domain.includes('detik.com')) return 'Detik';
-    if (domain.includes('kompas.com')) return 'Kompas';
-    if (domain.includes('cnnindonesia.com')) return 'CNN Indonesia';
-    if (domain.includes('cnbcindonesia.com')) return 'CNBC Indonesia';
-    if (domain.includes('tribunnews.com')) return 'Tribunnews';
-    if (domain.includes('tempo.co')) return 'Tempo';
-
-    const cleanDomain = domain.replace('www.', '').replace('news.', '');
-    return cleanDomain.split('.')[0].toUpperCase();
-  } catch {
-    return 'Sumber Asli';
-  }
-}
-
-// Daftar sumber dari berita anggota klaster (dipakai DETAIL): dedup per-URL,
-// diurutkan dari yang judulnya paling relevan dengan judul ringkasan. SEMUA
-// sumber unik dikembalikan (tanpa batas) supaya popup "Lihat Semua Sumber"
-// menampilkan seluruh berita, dan total sumber konsisten dengan daftar ini.
-export function buildSources(
-  members: any[],
-  clusterTitle: string,
-): { portal: string; url: string; title: string }[] {
-  const tokenize = (t: string) =>
-    new Set(
-      (t || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, " ")
-        .split(/\s+/)
-        .filter((w) => w.length > 3),
-    );
-  const baseTokens = tokenize(clusterTitle);
-  const relevance = (t: string) => {
-    let score = 0;
-    tokenize(t).forEach((w) => {
-      if (baseTokens.has(w)) score++;
-    });
-    return score;
-  };
-
-  const seen = new Set<string>();
-  return (members || [])
-    .filter((m) => m.url_asli && !seen.has(m.url_asli) && seen.add(m.url_asli))
-    .map((m) => ({
-      portal: m.portal_sumber || getPublisherName(m.url_asli),
-      url: m.url_asli,
-      title: m.judul || "",
-      score: relevance(m.judul || ""),
-    }))
-    .sort((a, b) => b.score - a.score)
-    .map(({ portal, url, title }) => ({ portal, url, title }));
-}
-
-// Transform satu baris KLASTER (hasil summarize) menjadi bentuk untuk frontend.
-// `categoryOverride` dipakai agar kategori di kartu sama persis dengan yang
-// dipakai untuk filter (konsisten).
-export function transformCluster(
-  cluster: any,
-  sektorList: any[] = [],
-  categoryOverride?: string,
-  views = 0,
-) {
-  const members: any[] = cluster.tabel_berita || [];
-  const aktors = cluster.tabel_sentimen_aktor || [];
-
-  const rep =
-    [...members].sort(
-      (a, b) => (b.isi_teks?.length || 0) - (a.isi_teks?.length || 0),
-    )[0] || {};
-
-  const repCreatedAt = members.reduce<string | null>((acc, m) => {
-    if (!m?.created_at) return acc;
-    if (!acc || new Date(m.created_at).getTime() > new Date(acc).getTime()) {
-      return m.created_at;
-    }
-    return acc;
-  }, null);
-  const waktu = repCreatedAt || cluster.waktu_terbentuk;
-
-  const summaryTitle = cluster.judul_summary || rep.judul || "Tanpa Judul";
-  const hasSentiment = aktors.length > 0;
-
-  const sentiments = aktors.slice(0, 3).map((a: any) => ({
-    type: a.sentimen as "Positif" | "Negatif" | "Netral",
-    percentage: a.persentase,
-    aktor: a.nama_aktor,
-    description:
-      a.alasan?.trim() ||
-      `${a.nama_aktor} — sentimen ${a.sentimen.toLowerCase()} terdeteksi.`,
-  }));
-
-  const sektorPredictions = (sektorList || []).map((s: any) => ({
-    nama_sektor: s.nama_sektor,
-    prediksi_dampak: s.prediksi_dampak,
-    tingkat_risiko: s.tingkat_risiko,
-    objek_terdampak: s.objek_terdampak ?? null,
-    sentimen_objek: s.sentimen_objek ?? null,
-    persentase_objek: s.persentase_objek ?? null,
-  }));
-
-  const impacts = aktors.slice(0, 1).map((a: any) => ({
-    name: `#${a.nama_aktor.toUpperCase().replace(/ /g, "_")}`,
-    percentage: a.persentase,
-  }));
-
-  const sources = buildSources(members, summaryTitle);
-  // Total sumber = jumlah sumber unik yang BENAR-BENAR ditampilkan (konsisten
-  // dengan daftar di popup). Fallback ke jumlah_berita bila daftar kosong.
-  const jumlahBerita = sources.length || cluster.jumlah_berita || 0;
-
-  return {
-    id: cluster.id_cluster,
-    title: summaryTitle,
-    summaryTitle,
-    category: categoryOverride || detectCategory(summaryTitle, cluster.summary_text || rep.isi_teks || ""),
-    description:
-      cluster.summary_text?.slice(0, 160) ||
-      rep.isi_teks?.slice(0, 160) ||
-      "Ringkasan belum tersedia.",
-    sentiments: sentiments.length > 0 ? sentiments : [
-      { type: "Netral" as const, percentage: 50, description: "⏳ Analisis sentimen belum tersedia." }
-    ],
-    impacts: impacts.length > 0 ? impacts : [
-      { name: hasSentiment ? "#BERITA" : "#MENUNGGU_PROSES", percentage: 50 }
-    ],
-    source: sources[0]?.portal || (jumlahBerita ? `${jumlahBerita} sumber` : "Beberapa sumber"),
-    sourceCount: jumlahBerita,
-    views,
-    url: sources[0]?.url || "#",
-    sources: sources,
-    sektorPredictions: sektorPredictions,
-    time: formatRelativeTime(waktu),
-    image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop",
-    fullContent: cluster.summary_text || rep.isi_teks || "",
-    aiSummary: cluster.summary_text || "Ringkasan belum tersedia.",
-    keywords: sektorPredictions.map((s: any) => s.nama_sektor),
-    publishedAt: waktu
-      ? new Date(waktu).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-      : "-",
-    isAnalyzed: hasSentiment,
-  };
-}
-
-// Pola kata kunci per kategori. Memakai batas kata (\b) agar tidak salah cocok
-// karena substring (mis. "hukuman" TIDAK dianggap "hukum", "pasaran" bukan
-// "pasar").
-const CATEGORY_PATTERNS: [string, RegExp][] = [
-  ["Ekonomi & Bisnis", /\b(saham|ihsg|rupiah|inflasi|ekonomi|bank|perbankan|investasi|keuangan|ekspor|impor|bisnis|korporasi|merger|pasar modal|perdagangan|dividen|emiten|pajak|emas|harga emas|bahan pokok|harga pangan|sembako|logistik|umkm|properti|suku bunga|gaji|upah)\b/],
-  ["Politik & Pemerintahan", /\b(politik|pemilu|partai|pemerintah|menteri|kementerian|kabinet|legislatif|koalisi|presiden|wapres|dpr|dprd|mpr|pilkada|demokrasi|prabowo|gibran|jokowi|gubernur|bupati|wali kota|kebijakan|undang-undang|\bruu\b)\b/],
-  ["Hukum & Keamanan", /\b(hukum|keamanan|polisi|polri|polda|polres|\btni\b|\bkpk\b|sidang|hakim|jaksa|kriminal|terorisme|pasal|gugatan|korupsi|tersangka|penjara|narkoba|narkotika|pencurian|pembunuhan|penipuan|penembakan|begal|\bkdrt\b|pelecehan|kekerasan seksual|penangkapan|ditangkap|kejahatan|penyelundupan)\b/],
-  ["Sosial & Masyarakat", /\b(sosial|masyarakat|bencana|komunitas|demonstrasi|\bdemo\b|kemiskinan|bansos|banjir|gempa|kebakaran|pengungsi|kecelakaan|cuaca ekstrem|cuaca|longsor|lalu lintas|mudik|libur panjang|wisatawan|wisata|job fair|pencari kerja|ojol|keracunan|peristiwa|kuliner|makanan|resep|fashion|kecantikan|pernikahan|khutbah|islam|agama|kereta|\bkai\b|ormas)\b/],
-  ["Kesehatan", /\b(kesehatan|rumah sakit|dokter|obat|penyakit|vaksin|medis|pasien|pandemi|wabah|bpjs|gizi|stunting|virus|kanker|diabetes|imunisasi)\b/],
-  ["Pendidikan", /\b(pendidikan|sekolah|kuliah|mahasiswa|guru|dosen|kurikulum|beasiswa|kemendikbud|kampus|universitas|ujian|siswa|pelajar|sekolah rakyat)\b/],
-  ["Energi & Lingkungan", /\b(energi|lingkungan|iklim|karbon|polusi|tambang|batu bara|\bplts\b|sampah|kehutanan|emisi|sawit|migas|\bbbm\b|\blpg\b|pertamina|gunung api|gunung berapi|erupsi|vulkanik|satwa|konservasi|anggrek|\bpln\b|kelistrikan)\b/],
-  ["Teknologi", /\b(teknologi|startup|\bai\b|kecerdasan buatan|machine learning|digital|aplikasi|gadget|siber|robot|software|internet|smartphone|ponsel|perangkat|\bchip\b|gawai|media sosial)\b/],
-  ["Olahraga & Hiburan", /\b(bola|sepak bola|liga|super league|\bgol\b|timnas|olahraga|atlet|pertandingan|juara|piala|klasemen|pemain|pelatih|klub|persib|persija|persebaya|arema|real madrid|barcelona|manchester|liverpool|arsenal|chelsea|guardiola|messi|ronaldo|motogp|moto2|moto3|pembalap|balap|balapan|sirkuit|grand prix|kualifikasi|sprint|formula 1|valentino|marquez|tenis|badminton|bulu tangkis|basket|voli|penalti|konser|film|musik|selebriti|aktor|aktris|artis|hiburan|sinetron|drama korea|drama china)\b/],
-  ["Hubungan Internasional", /\b(internasional|\bpbb\b|diplomasi|luar negeri|\bg20\b|asean|perbatasan|perang|perjanjian|gencatan senjata|israel|palestina|gaza|ukraina|rusia|netanyahu|amerika serikat)\b/],
-];
-
-// Pilih kategori dengan kecocokan kata kunci TERBANYAK (judul diberi bobot lebih
-// besar). Default "Sosial & Masyarakat" (bucket umum/peristiwa) bila tak ada
-// kata kunci yang cocok — bukan "Ekonomi" yang menyesatkan.
-export function detectCategory(judul: string, isi: string): string {
-  const judulL = (judul || "").toLowerCase();
-  const teks = `${judul} ${isi}`.toLowerCase();
-
-  let best = "Sosial & Masyarakat";
-  let bestScore = 0;
-  for (const [name, re] of CATEGORY_PATTERNS) {
-    const g = new RegExp(re.source, "g");
-    const bodyHits = (teks.match(g) || []).length;
-    const titleHits = (judulL.match(new RegExp(re.source, "g")) || []).length;
-    const score = bodyHits + titleHits * 2; // kata di judul dihitung ekstra
-    if (score > bestScore) {
-      bestScore = score;
-      best = name;
-    }
-  }
-  return best;
-}
-
-function formatRelativeTime(waktu: string) {
-  if (!waktu) return "Baru saja";
-  const dateObj = new Date(waktu);
-  if (isNaN(dateObj.getTime())) return waktu;
-
-  const diff = Date.now() - dateObj.getTime();
-  const menit = Math.floor(diff / 60000);
-  const jam = Math.floor(diff / 3600000);
-  const hari = Math.floor(jam / 24);
-
-  if (menit < 1) return "Baru saja";
-  if (menit < 60) return `${menit} menit lalu`;
-  if (jam < 24) return `${jam} jam lalu`;
-  return `${hari} hari lalu`;
+  // `meta` menyediakan konteks kesegaran data untuk UI: tanpa ini, feed
+  // menampilkan berita sebulan lalu di bawah judul "Trending Hari Ini" tanpa
+  // penjelasan apa pun.
+  return NextResponse.json({
+    data: transformed,
+    total: count,
+    meta: {
+      days,
+      latestDate: latestDateOf(entries),
+      oldestDate: oldestDateOf(entries),
+      totalArsip: entries.length,
+    },
+  });
 }

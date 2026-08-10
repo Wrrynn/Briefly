@@ -5,10 +5,35 @@ import { AnimatePresence, motion } from "framer-motion";
 import CategoryFilter from "@/app/components/CategoryFilter";
 import SentimentFilter from "@/app/components/SentimentFilter";
 import NewsCard from "@/app/components/NewsCard";
+import SiteHeader from "@/app/components/SiteHeader";
 import HeroSection from "@/app/components/HeroSection";
 import Footer from "@/app/components/Footer";
 
 const ITEMS_PER_PAGE = 12;
+
+// Pilihan rentang waktu. Dihitung mundur dari tanggal terbaru DI DATABASE,
+// bukan tanggal sistem — pipeline bisa tertinggal berhari-hari.
+const RENTANG = [
+    { nilai: 1, label: "1 hari" },
+    { nilai: 7, label: "7 hari" },
+    { nilai: 30, label: "30 hari" },
+    { nilai: 0, label: "Semua" },
+];
+
+function tanggalIndo(iso?: string | null): string {
+    if (!iso) return "-";
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
+
+// Berapa hari data terbaru tertinggal dari hari ini.
+function umurHari(iso?: string | null): number | null {
+    if (!iso) return null;
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((Date.now() - d.getTime()) / 86_400_000);
+}
 
 export default function NewsHome() {
     const [query, setQuery] = useState("");
@@ -16,6 +41,13 @@ export default function NewsHome() {
     const [sentimentFilter, setSentimentFilter] = useState("Semua");
     const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
     const [showFilters, setShowFilters] = useState(false);
+    // Rentang hari dihitung mundur dari tanggal TERBARU DI DATABASE (0 = semua).
+    const [days, setDays] = useState(7);
+    const [meta, setMeta] = useState<{
+        latestDate?: string | null;
+        oldestDate?: string | null;
+        totalArsip?: number;
+    } | null>(null);
 
     // Jumlah filter aktif (selain "Semua") untuk badge di tombol filter
     const activeFilterCount =
@@ -23,6 +55,9 @@ export default function NewsHome() {
 
     const [allNews, setAllNews] = useState<any[]>([]);
     const [loadingNews, setLoadingNews] = useState(true);
+    // Dibedakan dari "hasil kosong": dulu kegagalan jaringan ikut menampilkan
+    // "Berita tidak ditemukan", seolah-olah datanya memang tidak ada.
+    const [errorNews, setErrorNews] = useState<string | null>(null);
 
     // Trending: berita paling ramai (klik analisis + waktu baca) dari /api/trending
     const [trendingNews, setTrendingNews] = useState<any[]>([]);
@@ -30,6 +65,8 @@ export default function NewsHome() {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalNewsCount, setTotalNewsCount] = useState(0);
+    // Dinaikkan oleh tombol "Coba lagi" untuk memicu ulang fetch.
+    const [reloadKey, setReloadKey] = useState(0);
 
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -47,26 +84,49 @@ export default function NewsHome() {
         }
     }, []);
 
-    // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, atau urutan berubah
+    // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, rentang, atau urutan berubah
     useEffect(() => {
         setCurrentPage(1);
-    }, [query, category, sentimentFilter, sortOrder]);
+    }, [query, category, sentimentFilter, sortOrder, days]);
+
+    // Terapkan rentang default dari preferensi pengguna (halaman /profil).
+    // Hanya memicu fetch ulang bila nilainya memang berbeda dari default.
+    useEffect(() => {
+        const ac = new AbortController();
+        fetch("/api/profil", { cache: "no-store", signal: ac.signal })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => {
+                const n = j?.preferensi?.rentang_hari;
+                if (typeof n === "number" && n !== days) setDays(n);
+            })
+            .catch(() => {});
+        return () => ac.abort();
+        // Sengaja hanya sekali saat mount — bukan mengikuti perubahan `days`.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Ambil daftar trending (terpisah dari daftar utama yang ter-paginasi/filter)
     useEffect(() => {
-        fetch("/api/trending", { cache: "no-store" })
-            .then((res) => res.json())
+        const ac = new AbortController();
+        fetch("/api/trending", { cache: "no-store", signal: ac.signal })
+            .then((res) => (res.ok ? res.json() : { data: [] }))
             .then((json) => setTrendingNews(json.data || []))
             .catch((err) => {
+                if (err?.name === "AbortError") return;
                 console.error("Gagal mengambil trending:", err);
                 setTrendingNews([]);
             })
             .finally(() => setLoadingTrending(false));
+        return () => ac.abort();
     }, []);
 
-    // Ambil data dinamis dari API secara terpusat
+    // Ambil data dinamis dari API secara terpusat.
+    // AbortController membatalkan request lama saat filter/halaman berubah:
+    // tanpa itu, respons yang datang telat bisa menimpa hasil terbaru.
     useEffect(() => {
+        const ac = new AbortController();
         setLoadingNews(true);
+        setErrorNews(null);
 
         let url = `/api/analyze-news/berita?page=${currentPage}&limit=${ITEMS_PER_PAGE}`;
         if (category !== "Semua") {
@@ -78,28 +138,40 @@ export default function NewsHome() {
         if (sentimentFilter !== "Semua") {
             url += `&sentiment=${encodeURIComponent(sentimentFilter)}`;
         }
-        url += `&sort=${sortOrder}`;
+        url += `&sort=${sortOrder}&days=${days}`;
 
-        fetch(url, { cache: "no-store" })
-            .then((res) => res.json())
-            .then((json) => {
-                if (json.data) {
-                    setAllNews(json.data);
-                    setTotalNewsCount(json.total || 0);
-                } else {
-                    setAllNews([]);
-                    setTotalNewsCount(0);
+        fetch(url, { cache: "no-store", signal: ac.signal })
+            .then(async (res) => {
+                // Sesi habis / belum login: API kini membalas 401 (bukan HTML).
+                if (res.status === 401) {
+                    window.location.href = "/login?expired=1";
+                    return null;
                 }
+                if (!res.ok) {
+                    const body = await res.json().catch(() => null);
+                    throw new Error(body?.error || `Gagal memuat berita (${res.status})`);
+                }
+                return res.json();
+            })
+            .then((json) => {
+                if (!json) return;
+                setAllNews(json.data || []);
+                setTotalNewsCount(json.total || 0);
+                if (json.meta) setMeta(json.meta);
             })
             .catch((err) => {
+                if (err?.name === "AbortError") return;
                 console.error("Gagal mengambil berita:", err);
+                setErrorNews(err?.message || "Gagal memuat berita.");
                 setAllNews([]);
                 setTotalNewsCount(0);
             })
             .finally(() => {
-                setLoadingNews(false);
+                if (!ac.signal.aborted) setLoadingNews(false);
             });
-    }, [currentPage, category, query, sentimentFilter, sortOrder]);
+
+        return () => ac.abort();
+    }, [currentPage, category, query, sentimentFilter, sortOrder, days, reloadKey]);
 
     const filteredNews = allNews;
     const totalPages = totalNewsCount > 0 ? Math.ceil(totalNewsCount / ITEMS_PER_PAGE) : 1;
@@ -129,20 +201,78 @@ export default function NewsHome() {
     return (
         <main className="min-h-screen transition-colors duration-500 bg-gray-50 dark:bg-[#05051a]">
             <div className="min-h-screen transition-colors duration-500">
-                <HeroSection
+                <SiteHeader
                     setQuery={setQuery}
                     isDarkMode={isDarkMode}
                     setIsDarkMode={handleToggleTheme}
-                    trendingNews={trendingNews}
-                    loadingTrending={loadingTrending}
                     searchActive={query.trim() !== ""}
                     sentimentFilter={sentimentFilter}
                     setSentimentFilter={setSentimentFilter}
                 />
 
-                <div id="news-content" className="pt-8 pb-20">
+                <HeroSection
+                    trendingNews={trendingNews}
+                    loadingTrending={loadingTrending}
+                    searchActive={query.trim() !== ""}
+                    tanggalData={meta?.latestDate ?? null}
+                />
+
+                {/* scroll-mt menjaga judul daftar tidak tertutup header sticky
+                    saat scrollIntoView dipanggil dari pencarian/paginasi. */}
+                <div id="news-content" className="scroll-mt-24 pt-8 pb-20">
                     <div className="max-w-7xl mx-auto px-4">
+                        {/* Kesegaran data — jujur soal kapan data terakhir masuk.
+                            Tanpa ini, berita sebulan lalu tampil tanpa keterangan apa pun. */}
+                        {meta?.latestDate && (umurHari(meta.latestDate) ?? 0) > 1 && (
+                            <div className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/70 dark:bg-amber-500/[0.07] px-5 py-3.5">
+                                <span className="flex h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                                <p className="text-[13px] text-amber-900 dark:text-amber-200/90">
+                                    Data terakhir masuk{" "}
+                                    <strong className="font-bold">{tanggalIndo(meta.latestDate)}</strong>
+                                    {" — "}
+                                    {umurHari(meta.latestDate)} hari lalu. Analisis baru belum tersedia.
+                                </p>
+                                {meta.totalArsip ? (
+                                    <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-amber-700/70 dark:text-amber-300/50">
+                                        Arsip: {meta.totalArsip.toLocaleString("id-ID")} analisis
+                                    </span>
+                                ) : null}
+                            </div>
+                        )}
+
                         <div className="mb-10">
+                            {/* Rentang waktu — hanya relevan saat tidak mencari (pencarian selalu global) */}
+                            {query.trim() === "" && (
+                                <div className="mb-5 flex flex-wrap items-center gap-2">
+                                    <span className="mr-1 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/40">
+                                        Rentang
+                                    </span>
+                                    <div className="inline-flex flex-wrap gap-1 p-1 rounded-full border border-gray-300 dark:border-white/10 bg-white dark:bg-white/5">
+                                        {RENTANG.map((r) => (
+                                            <button
+                                                key={r.nilai}
+                                                onClick={() => setDays(r.nilai)}
+                                                aria-pressed={days === r.nilai}
+                                                className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
+                                                    days === r.nilai
+                                                        ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow"
+                                                        : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
+                                                }`}
+                                            >
+                                                {r.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {meta?.latestDate && (
+                                        <span className="text-[10px] text-gray-400 dark:text-white/30">
+                                            {days === 0
+                                                ? `${tanggalIndo(meta.oldestDate)} – ${tanggalIndo(meta.latestDate)}`
+                                                : `s/d ${tanggalIndo(meta.latestDate)}`}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Baris kontrol: tombol filter + ringkasan filter aktif */}
                             <div className="flex flex-wrap items-center gap-3">
                                 <button
@@ -328,15 +458,29 @@ export default function NewsHome() {
                                             <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-4/5" />
                                             <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mt-3" />
                                             <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-3/4" />
-                                            <div className="h-11 bg-gray-200 dark:bg-white/10 rounded-xl w-full mt-5" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
                             <>
+                                {errorNews && (
+                                    <div className="mb-10 flex flex-col items-center gap-4 rounded-[2.5rem] border-2 border-dashed border-rose-200 dark:border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/5 py-14 px-6 text-center">
+                                        <p className="text-rose-700 dark:text-rose-400 font-bold uppercase tracking-[0.2em] text-xs">
+                                            Gagal memuat berita
+                                        </p>
+                                        <p className="text-sm text-gray-500 dark:text-white/40 max-w-md">{errorNews}</p>
+                                        <button
+                                            onClick={() => setReloadKey((k) => k + 1)}
+                                            className="mt-1 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-[0.2em] bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 transition-opacity"
+                                        >
+                                            Coba lagi
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                                    {filteredNews.length > 0 ? (
+                                    {errorNews ? null : filteredNews.length > 0 ? (
                                         filteredNews.map((item, i) => (
                                             <NewsCard
                                                 key={item.id || item.id_berita || i}
@@ -352,11 +496,19 @@ export default function NewsHome() {
                                                 {query.trim() !== ""
                                                     ? `Kata kunci "${query}"${sentimentFilter !== "Semua" ? ` dengan sentimen ${sentimentFilter}` : ""} tidak ada di berita yang sudah dianalisis.`
                                                     : category !== "Semua"
-                                                        ? `Belum ada berita teranalisis untuk kategori "${category}"${sentimentFilter !== "Semua" ? ` dengan sentimen ${sentimentFilter}` : ""} hari ini.`
+                                                        ? `Belum ada berita teranalisis untuk kategori "${category}"${sentimentFilter !== "Semua" ? ` dengan sentimen ${sentimentFilter}` : ""} dalam rentang ini.`
                                                         : sentimentFilter !== "Semua"
-                                                            ? `Belum ada berita dengan sentimen ${sentimentFilter} yang dapat ditampilkan.`
-                                                            : "Belum ada berita yang dapat ditampilkan."}
+                                                            ? `Belum ada berita dengan sentimen ${sentimentFilter} dalam rentang ini.`
+                                                            : "Belum ada berita dalam rentang ini."}
                                             </p>
+                                            {query.trim() === "" && days !== 0 && (
+                                                <button
+                                                    onClick={() => setDays(0)}
+                                                    className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 hover:underline"
+                                                >
+                                                    Cari di seluruh arsip →
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>

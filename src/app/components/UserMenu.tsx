@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 // Tampilan user + tombol logout di navbar halaman berita. Mengambil nama dari
@@ -27,8 +28,6 @@ export default function UserMenu() {
 
   async function handleLogout() {
     setLoading(true);
-    // Reset penanda mulai sesi agar timer 6 jam mulai dari awal saat login lagi.
-    document.cookie = "briefly_session_start=; path=/; max-age=0";
     await supabase.auth.signOut();
     window.location.href = "/login";
   }
@@ -39,12 +38,19 @@ export default function UserMenu() {
 
   return (
     <div className="flex items-center gap-2 sm:gap-3">
-      <div className="hidden items-center gap-2 sm:flex">
+      {/* Avatar + nama sekaligus jadi pintu masuk ke halaman profil. */}
+      <Link
+        href="/profil"
+        title="Buka profil"
+        className="flex items-center gap-2 rounded-2xl px-1.5 py-1 transition hover:bg-gray-100 dark:hover:bg-white/5"
+      >
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-black text-white">
           {inisial}
         </div>
-        <span className="text-sm font-bold text-gray-800 dark:text-white/80">{name}</span>
-      </div>
+        <span className="hidden text-sm font-bold text-gray-800 dark:text-white/80 sm:inline">
+          {name}
+        </span>
+      </Link>
 
       <button
         onClick={handleLogout}

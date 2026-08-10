@@ -1,4 +1,5 @@
 import type { NewsItem } from "@/app/data/mockNews";
+import IkonMata from "@/app/components/IkonMata";
 
 export default function NewsMeta({ news }: { news: NewsItem }) {
     return (
@@ -10,7 +11,10 @@ export default function NewsMeta({ news }: { news: NewsItem }) {
             {news.views ? (
                 <div>
                     <p className="text-[11px] text-gray-500 dark:text-white/40 uppercase tracking-widest font-bold mb-0.5 transition-colors">Dilihat</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white/90 transition-colors">{news.views.toLocaleString("id-ID")} kali</p>
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-gray-900 dark:text-white/90 transition-colors">
+                        <IkonMata className="h-4 w-4 text-gray-500 dark:text-white/50" />
+                        {news.views.toLocaleString("id-ID")} kali
+                    </p>
                 </div>
             ) : null}
         </div>

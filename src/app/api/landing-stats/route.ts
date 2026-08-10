@@ -1,39 +1,32 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { detectCategory, combineSentiments } from "@/app/api/analyze-news/berita/route";
+import { getClusterIndex, q } from "@/lib/news";
+import { allowRequest, clientIp } from "@/lib/rate-limit";
+import { tooManyRequests } from "@/lib/auth";
 
-// Statistik agregat untuk landing page (publik). Kategori & sentimen dihitung
-// dengan fungsi yang SAMA dengan feed app (detectCategory / combineSentiments)
-// agar filter di grafik konsisten dengan filter di aplikasi.
+// Statistik agregat untuk landing page. Endpoint ini SENGAJA publik (landing
+// tampil sebelum login), jadi ia dilindungi dua hal: hasilnya di-cache dan
+// pemanggilnya dibatasi laju — sebelumnya tiap hit menarik 5000 klaster lalu
+// mengagregasi semuanya, sehingga siapa pun bisa membebani database dengan
+// me-refresh halaman depan.
+//
+// Kategori & sentimen memakai indeks klaster yang SAMA dengan feed app, jadi
+// angka di grafik konsisten dengan filter di aplikasi.
 export const dynamic = "force-dynamic";
 
 const SEP = "::|::";
+const STATS_TTL_MS = 10 * 60 * 1000;
+const RATE_LIMIT = 30;
+const RATE_WINDOW_MS = 60_000;
 
-type Aktor = { nama_aktor: string | null; sentimen: string | null };
-type Cluster = {
-  judul_summary: string | null;
-  summary_text: string | null;
-  waktu_terbentuk: string | null;
-  tabel_sentimen_aktor: Aktor[] | null;
-};
+let statsCache: { at: number; payload: unknown } | null = null;
+let statsInflight: Promise<unknown> | null = null;
 
-export async function GET() {
-  if (!isSupabaseConfigured) {
-    return NextResponse.json({ error: "Supabase belum dikonfigurasi" }, { status: 503 });
-  }
+async function computeStats() {
+  const { data: totals, error } = await q(() => supabase.rpc("get_landing_stats"));
+  if (error) throw error instanceof Error ? error : new Error(String(error?.message || error));
 
-  const { data: totals, error: e1 } = await supabase.rpc("get_landing_stats");
-  if (e1) return NextResponse.json({ error: e1.message }, { status: 503 });
-
-  // Klaster yang sudah diringkas = item yang ditampilkan & difilter di app.
-  const { data: rows, error: e2 } = await supabase
-    .from("tabel_cluster")
-    .select("judul_summary, summary_text, waktu_terbentuk, tabel_sentimen_aktor(nama_aktor, sentimen)")
-    .not("judul_summary", "is", null)
-    .limit(5000);
-  if (e2) return NextResponse.json({ error: e2.message }, { status: 503 });
-
-  const clusters = (rows ?? []) as Cluster[];
+  const clusters = await getClusterIndex();
 
   const kategoriTotals = new Map<string, number>();
   const dailyAll = new Map<string, number>();
@@ -43,10 +36,10 @@ export async function GET() {
   const aktorKategori = new Map<string, number>();
 
   for (const c of clusters) {
-    const kategori = detectCategory(c.judul_summary || "", c.summary_text || "");
-    const tgl = (c.waktu_terbentuk || "").slice(0, 10);
-    const aktors = c.tabel_sentimen_aktor || [];
-    const sentimen = combineSentiments(aktors);
+    const kategori = c.category;
+    const tgl = (c.raw.waktu_terbentuk || "").slice(0, 10);
+    const aktors = c.raw.tabel_sentimen_aktor || [];
+    const sentimen = c.sentiment;
 
     kategoriTotals.set(kategori, (kategoriTotals.get(kategori) || 0) + 1);
     sentimenCount.set(sentimen, (sentimenCount.get(sentimen) || 0) + 1);
@@ -101,7 +94,7 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json({
+  return {
     totals,
     kategori_top,
     daily,
@@ -109,5 +102,43 @@ export async function GET() {
     sentimen,
     aktor_top,
     aktor_kategori,
-  });
+  };
+}
+
+async function getStats() {
+  const now = Date.now();
+  if (statsCache && now - statsCache.at < STATS_TTL_MS) return statsCache.payload;
+  if (statsInflight) return statsInflight;
+
+  statsInflight = computeStats()
+    .then((payload) => {
+      statsCache = { at: Date.now(), payload };
+      return payload;
+    })
+    .catch((e) => {
+      if (statsCache) return statsCache.payload; // sajikan yang lama daripada gagal
+      throw e;
+    })
+    .finally(() => {
+      statsInflight = null;
+    });
+
+  return statsInflight;
+}
+
+export async function GET(request: NextRequest) {
+  if (!isSupabaseConfigured) {
+    return NextResponse.json({ error: "Supabase belum dikonfigurasi" }, { status: 503 });
+  }
+
+  if (!allowRequest(`landing:${clientIp(request)}`, RATE_LIMIT, RATE_WINDOW_MS)) {
+    return tooManyRequests();
+  }
+
+  try {
+    return NextResponse.json(await getStats());
+  } catch (e: any) {
+    console.error("Landing stats error:", e);
+    return NextResponse.json({ error: "Gagal memuat statistik" }, { status: 503 });
+  }
 }

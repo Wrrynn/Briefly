@@ -11,6 +11,8 @@ import NewsContent from "@/app/components/detail/NewsContent";
 import LoadingSkeleton, {
     SidebarSkeleton,
 } from "@/app/components/detail/LoadingSkeleton";
+import FramingComparison from "@/app/components/detail/FramingComparison";
+import BookmarkButton from "@/app/components/BookmarkButton";
 import Footer from "@/app/components/Footer";
 import type { NewsItem } from "@/app/data/mockNews";
 import { createClient } from "@/lib/supabase/client";
@@ -79,10 +81,17 @@ export default function NewsDetailPage() {
         setLoading(true); // Reset loading state jika ID berubah
         fetch(`/api/analyze-news/berita/${newsId}`)
             .then((res) => {
+                // Sesi habis di tengah jalan → arahkan ke login, jangan tampil
+                // sebagai "berita tidak ditemukan".
+                if (res.status === 401) {
+                    window.location.href = "/login?expired=1";
+                    return null;
+                }
                 if (!res.ok) throw new Error("not found");
                 return res.json();
             })
             .then((json) => {
+                if (!json) return; // sedang redirect ke /login
                 if (json.data) {
                     setNews({ ...json.data, aiLoading: false });
                     setNotFound(false);
@@ -112,6 +121,15 @@ export default function NewsDetailPage() {
     const trackedId = news?.id;
     useEffect(() => {
         if (trackedId == null) return;
+
+        // Catat ke riwayat baca pengguna (untuk halaman profil). Diamkan bila
+        // tabel profil belum dibuat — fitur ini tidak boleh mengganggu pembacaan.
+        fetch("/api/profil/riwayat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: trackedId }),
+            keepalive: true,
+        }).catch(() => {});
 
         // 1 klik per berita per sesi browser (refresh tidak menggelembungkan).
         const key = `metrik-klik:${trackedId}`;
@@ -226,6 +244,9 @@ export default function NewsDetailPage() {
                     </Link>
 
                     <div className="flex items-center gap-5">
+                        {news?.id != null && (
+                            <BookmarkButton id={Number(news.id)} ukuran="besar" />
+                        )}
                         {mounted && (
                             <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-90">
                                 {isDarkMode ? (
@@ -295,6 +316,9 @@ export default function NewsDetailPage() {
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
+
+                {/* PERBANDINGAN FRAMING ANTAR PORTAL */}
+                {!loading && news && <FramingComparison newsId={news.id} />}
 
                 {/* RELATED NEWS */}
                 {!loading && news && relatedNews.length > 0 && (

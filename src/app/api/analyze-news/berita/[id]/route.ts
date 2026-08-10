@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { transformCluster, q } from "../route";
+import { getSessionUser, unauthorized } from "@/lib/auth";
+import { transformCluster, q } from "@/lib/news";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const user = await getSessionUser();
+  if (!user) return unauthorized();
+
   const { id: idStr } = await context.params;
   const id = parseInt(idStr);
 

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import BookmarkButton from "@/app/components/BookmarkButton";
+import IkonMata from "@/app/components/IkonMata";
 
 // Sentimen kartu mewakili gabungan sentimen semua aktor:
 // - semua Positif  -> "Positif"
@@ -26,68 +28,105 @@ const sentimentBadge: Record<string, string> = {
   Campuran: "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/25",
 };
 
+// "31 hari lalu" tidak memberi informasi apa pun. Begitu berita berumur lebih
+// dari sehari, tanggal sebenarnya jauh lebih berguna.
+function labelWaktu(data: any): string {
+  const relatif = String(data.time || "");
+  return /hari lalu/.test(relatif) ? data.publishedAt || relatif : relatif;
+}
+
+const MAKS_PORTAL = 2; // dijaga tetap satu baris agar tinggi kartu rata
+
 export default function NewsCard({ data }: any) {
   const sentiment = getCardSentiment(data.sentiments);
+  const portals: string[] = data.portals || [];
+  const sisaPortal = (data.portalCount || portals.length) - MAKS_PORTAL;
+  const sektor: string[] = (data.sektorPredictions || [])
+    .slice(0, 3)
+    .map((s: any) => s.nama_sektor)
+    .filter(Boolean);
 
   return (
-    <div className="group relative flex flex-col bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden transition-all duration-300 hover:border-blue-600 dark:hover:border-blue-500/40 hover:shadow-2xl hover:-translate-y-1 shadow-lg shadow-gray-100/60 dark:shadow-none">
+    <article className="group relative flex flex-col bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl transition-all duration-300 hover:border-blue-600 dark:hover:border-blue-500/40 hover:shadow-2xl hover:-translate-y-1 shadow-lg shadow-gray-100/60 dark:shadow-none">
+      {/* Seluruh kartu adalah satu target klik — tanpa tombol terpisah di bawah.
+          Tombol itu justru jadi elemen paling mencolok di kartu dan mengalahkan
+          judul beritanya sendiri, padahal tujuannya sama dengan klik kartu. */}
+      <Link
+        href={`/news/${data.id}`}
+        aria-label={data.title}
+        className="absolute inset-0 z-10 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      />
+
       <div className="flex flex-col flex-1 p-6">
-        {/* Kategori + Sentimen */}
-        <div className="flex justify-between items-center gap-2 mb-4">
+        {/* Kategori + sentimen + simpan */}
+        <div className="flex justify-between items-center gap-2 mb-3">
           <span className="bg-gray-900 dark:bg-white text-white dark:text-black font-black text-[10px] px-3 py-1.5 rounded-md uppercase tracking-[0.2em]">
             {data.category}
           </span>
-          {sentiment && (
-            <span className={`text-[9px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-md border ${sentimentBadge[sentiment]}`}>
-              {sentiment}
-            </span>
-          )}
+          <div className="flex items-center gap-1">
+            {sentiment && (
+              <span className={`text-[9px] font-black uppercase tracking-[0.18em] px-2.5 py-1 rounded-md border ${sentimentBadge[sentiment]}`}>
+                {sentiment}
+              </span>
+            )}
+            {data.id != null && (
+              <span className="relative z-20">
+                <BookmarkButton id={Number(data.id)} />
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Waktu + jumlah dilihat (klik analisis). Disembunyikan bila 0. */}
-        <div className="flex items-center gap-2 mb-4 text-[10px] text-gray-400 dark:text-white/50 font-bold uppercase tracking-widest">
-          <span>{data.time}</span>
+        {/* JUDUL — elemen paling menonjol di kartu. */}
+        <h2 className="text-[19px] font-extrabold text-gray-900 dark:text-white leading-snug mb-2.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 line-clamp-3">
+          {data.title}
+        </h2>
+
+        <p className="text-sm text-gray-600 dark:text-white/55 line-clamp-2 mb-4 leading-relaxed">
+          {data.description}
+        </p>
+
+        {/* Portal sumber — inti nilai Briefly: satu peristiwa, banyak portal.
+            Dibedakan gayanya dari sektor di bawah karena artinya berbeda:
+            ini SUMBER, yang di bawah DAMPAK. */}
+        {portals.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-3 min-w-0">
+            {portals.slice(0, MAKS_PORTAL).map((p) => (
+              <span
+                key={p}
+                className="truncate rounded-full bg-gray-100 dark:bg-white/[0.07] px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:text-white/60"
+              >
+                {p}
+              </span>
+            ))}
+            {sisaPortal > 0 && (
+              <span className="shrink-0 text-[11px] font-semibold text-gray-400 dark:text-white/35">
+                +{sisaPortal} portal
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Sektor terdampak — teks polos, bukan chip, supaya tidak tertukar
+            dengan portal di atasnya. */}
+        {sektor.length > 0 && (
+          <p className="mb-5 text-[11px] leading-relaxed text-gray-400 dark:text-white/35">
+            <span className="font-bold">Dampak:</span> {sektor.join(" · ")}
+          </p>
+        )}
+
+        {/* Baris kaki: waktu + jumlah dilihat (dengan ikon mata). */}
+        <div className="mt-auto flex items-center gap-2 border-t border-gray-100 dark:border-white/[0.06] pt-4 text-[11px] text-gray-400 dark:text-white/40">
+          <span className="min-w-0 truncate">{labelWaktu(data)}</span>
           {data.views > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <span className="opacity-40">·</span>
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12z" />
-                <circle cx="12" cy="12" r="2.5" />
-              </svg>
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <span className="opacity-50">·</span>
+              <IkonMata className="h-3 w-3" />
               {Number(data.views).toLocaleString("id-ID")} dilihat
             </span>
           )}
         </div>
-
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-white leading-snug mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 tracking-tight line-clamp-2">
-          {data.title}
-        </h2>
-
-        <p className="text-sm text-gray-600 dark:text-white/60 line-clamp-2 mb-4 font-normal leading-relaxed">
-          {data.description}
-        </p>
-
-        {/* Sektor terdampak (prediksi) */}
-        {data.sektorPredictions?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-6">
-            {data.sektorPredictions.slice(0, 3).map((s: any, i: number) => (
-              <span
-                key={i}
-                className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50"
-              >
-                {s.nama_sektor}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <Link
-          href={`/news/${data.id}`}
-          className="block w-full mt-auto py-3.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-[10px] font-black uppercase tracking-[0.25em] hover:bg-blue-600 dark:hover:bg-gray-200 transition-all duration-300 active:scale-95 text-center"
-        >
-          Analisis Lengkap →
-        </Link>
       </div>
-    </div>
+    </article>
   );
 }
