@@ -6,30 +6,45 @@ import { supabase } from "@/lib/supabase";
 // Semua fungsi di sini SUDAH mengasumsikan identitas terverifikasi (dipanggil
 // setelah getSessionUser()), lalu memakai client service-role.
 
-// PostgREST membalas kode ini bila tabel/relasi belum ada. Dipakai agar aplikasi
-// tetap hidup (dengan pesan jelas) ketika migrasi belum dijalankan, bukan
-// melempar 500 yang membingungkan.
-const KODE_TABEL_HILANG = new Set(["42P01", "PGRST205", "PGRST202"]);
+// Dua kegagalan yang berbeda, tapi artinya sama bagi pengguna: rangkaian
+// migrasi belum tuntas.
+//
+//   42P01 / PGRST205 / PGRST202 — tabel atau fungsinya memang belum dibuat
+//   42501                       — tabelnya ADA, tapi service_role belum
+//                                 diberi hak atasnya
+//
+// Kode 42501 wajib ikut di sini. Menjalankan 0001 saja membuat tabelnya ada
+// tetapi tanpa grant (project ini tidak mewariskannya otomatis — itu sebabnya
+// 0002 dan 0004 ditulis), sehingga galatnya berubah dari "tabel tidak
+// ditemukan" menjadi "izin ditolak". Tanpa baris ini, tepat di kondisi
+// setengah jalan itu aplikasi berhenti menampilkan banner petunjuk dan
+// melempar 500 yang tidak menjelaskan apa-apa.
+const KODE_MIGRASI_BELUM_TUNTAS = new Set(["42P01", "PGRST205", "PGRST202", "42501"]);
 
-export function tabelBelumAda(error: any): boolean {
+export function migrasiBelumTuntas(error: any): boolean {
   if (!error) return false;
   const kode = String(error.code || "");
-  if (KODE_TABEL_HILANG.has(kode)) return true;
+  if (KODE_MIGRASI_BELUM_TUNTAS.has(kode)) return true;
   const pesan = String(error.message || "").toLowerCase();
-  return pesan.includes("does not exist") || pesan.includes("could not find the table");
+  return (
+    pesan.includes("does not exist") ||
+    pesan.includes("could not find the table") ||
+    pesan.includes("permission denied")
+  );
 }
 
 export class MigrasiBelumJalan extends Error {
   constructor() {
     super(
-      "Tabel profil belum ada. Jalankan supabase/migrations/0001_profil_pengguna.sql di Supabase SQL Editor.",
+      "Migrasi profil belum tuntas. Jalankan 0001, 0002, 0004, lalu 0005 di supabase/migrations/ " +
+        "lewat Supabase SQL Editor — 0001 membuat tabelnya, 0004 memberi hak aksesnya.",
     );
     this.name = "MigrasiBelumJalan";
   }
 }
 
 function lempar(error: any) {
-  if (tabelBelumAda(error)) throw new MigrasiBelumJalan();
+  if (migrasiBelumTuntas(error)) throw new MigrasiBelumJalan();
   throw error instanceof Error ? error : new Error(String(error?.message || error));
 }
 
