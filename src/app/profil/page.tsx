@@ -276,15 +276,48 @@ export default function ProfilPage() {
                                     Satu langkah lagi
                                 </h2>
                                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-amber-900/80 dark:text-amber-200/70">
-                                    Tabel penyimpanan profil belum ada di database. Buka{" "}
-                                    <strong>Supabase Dashboard → SQL Editor</strong>, tempelkan seluruh isi
-                                    berkas berikut, lalu jalankan:
+                                    Tabel penyimpanan profil belum ada di database. Jalankan berkas
+                                    migrasi berikut dari repositori, berurutan:
                                 </p>
-                                <code className="mt-4 block rounded-xl bg-amber-100 dark:bg-amber-500/10 px-4 py-3 text-[13px] font-mono text-amber-900 dark:text-amber-200 overflow-x-auto">
-                                    supabase/migrations/0001_profil_pengguna.sql
-                                </code>
-                                <p className="mt-4 text-xs text-amber-800/70 dark:text-amber-200/50">
-                                    Setelah dijalankan, muat ulang halaman ini. Fitur lain tetap berjalan
+
+                                {/* Ditulis sebagai daftar berlabel "berkas", BUKAN blok kode.
+                                    Versi lama menampilkan path di dalam <code> monospace —
+                                    tampilannya persis perintah siap salin, dan memang pernah
+                                    tersalin apa adanya ke SQL Editor lalu ditolak Postgres
+                                    dengan `syntax error at or near "supabase"`. Yang harus
+                                    disalin adalah ISI berkasnya, dan kalimat di bawah kini
+                                    menyebutkan itu secara eksplisit. */}
+                                <ol className="mt-4 space-y-1.5">
+                                    {[
+                                        ["0001_profil_pengguna.sql", "tabel profil"],
+                                        ["0002_perbaikan_hak_metrik.sql", "penghitung dilihat"],
+                                        ["0004_app_likes_dan_hak_akses.sql", "tombol suka + hak akses"],
+                                        ["0005_gambar_klaster.sql", "cache gambar kartu"],
+                                    ].map(([berkas, guna], i) => (
+                                        <li
+                                            key={berkas}
+                                            className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-amber-900 dark:text-amber-200"
+                                        >
+                                            <span className="font-black tabular-nums opacity-50">{i + 1}.</span>
+                                            <span className="font-bold">
+                                                supabase/migrations/{berkas}
+                                            </span>
+                                            <span className="text-[11px] text-amber-800/60 dark:text-amber-200/45">
+                                                — {guna}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ol>
+
+                                <p className="mt-5 max-w-2xl text-sm leading-relaxed text-amber-900/80 dark:text-amber-200/70">
+                                    Buka tiap berkas di editor, salin <strong>seluruh isinya</strong>{" "}
+                                    (bukan nama berkasnya), lalu tempel dan jalankan di{" "}
+                                    <strong>Supabase Dashboard → SQL Editor</strong>. Semuanya aman
+                                    dijalankan berulang.
+                                </p>
+
+                                <p className="mt-3 text-xs text-amber-800/70 dark:text-amber-200/50">
+                                    Setelah selesai, muat ulang halaman ini. Fitur lain tetap berjalan
                                     normal tanpa migrasi ini.
                                 </p>
                             </div>
