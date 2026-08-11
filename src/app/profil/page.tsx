@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import NewsCard from "@/app/components/NewsCard";
 import Footer from "@/app/components/Footer";
+import { temaGelapAktif, terapkanTema } from "@/lib/tema";
 
 type Identitas = {
     id: string;
@@ -56,7 +57,11 @@ function waktuRelatif(iso?: string | null) {
 
 export default function ProfilPage() {
     const [mounted, setMounted] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(true);
+    // Dibaca dari dokumen, bukan dari localStorage lagi — SKRIP_TEMA sudah
+    // menerjemahkan preferensi tersimpan menjadi class `dark` sebelum paint.
+    const [isDarkMode, setIsDarkMode] = useState(
+        () => typeof document === "undefined" || temaGelapAktif(),
+    );
 
     const [user, setUser] = useState<Identitas | null>(null);
     const [statistik, setStatistik] = useState<Statistik | null>(null);
@@ -71,19 +76,15 @@ export default function ProfilPage() {
     const [aktorPopuler, setAktorPopuler] = useState<Aktor[]>([]);
     const [pesan, setPesan] = useState<string | null>(null);
 
-    // === TEMA (konsisten dengan halaman lain) ===
-    useEffect(() => {
-        setMounted(true);
-        const simpanan = localStorage.getItem("theme");
-        const gelap = simpanan !== "light";
-        setIsDarkMode(gelap);
-        document.documentElement.classList.toggle("dark", gelap);
-    }, []);
+    // === TEMA ===
+    // Pemasangan class `dark` sudah dilakukan SKRIP_TEMA di layout sebelum paint.
+    // Yang tersisa di sini hanya sakelar di tab Setelan, yang perlu tahu keadaan
+    // sekarang untuk menampilkan posisi on/off-nya.
+    useEffect(() => setMounted(true), []);
 
     const gantiTema = (gelap: boolean) => {
         setIsDarkMode(gelap);
-        localStorage.setItem("theme", gelap ? "dark" : "light");
-        document.documentElement.classList.toggle("dark", gelap);
+        terapkanTema(gelap);
         void simpanPreferensi({ tema: gelap ? "dark" : "light" });
     };
 

@@ -68,21 +68,11 @@ export default function NewsHome() {
     // Dinaikkan oleh tombol "Coba lagi" untuk memicu ulang fetch.
     const [reloadKey, setReloadKey] = useState(0);
 
-    const [isDarkMode, setIsDarkMode] = useState(true);
     const [mounted, setMounted] = useState(false);
 
-    // Efek Pengaturan Tema (Dark Mode)
-    useEffect(() => {
-        setMounted(true);
-        const savedTheme = localStorage.getItem("theme");
-        const isDark = savedTheme === "dark" || (!savedTheme && true);
-        setIsDarkMode(isDark);
-        if (isDark) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-    }, []);
+    // Tema tidak lagi diurus di sini: class `dark` sudah dipasang sebelum paint
+    // pertama oleh SKRIP_TEMA di layout, dan tombolnya ada di SiteHeader.
+    useEffect(() => setMounted(true), []);
 
     // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, rentang, atau urutan berubah
     useEffect(() => {
@@ -176,17 +166,6 @@ export default function NewsHome() {
     const filteredNews = allNews;
     const totalPages = totalNewsCount > 0 ? Math.ceil(totalNewsCount / ITEMS_PER_PAGE) : 1;
 
-    const handleToggleTheme = (newMode: boolean) => {
-        setIsDarkMode(newMode);
-        if (newMode) {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("theme", "dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-        }
-    };
-
     const handleCategoryChange = (newCategory: string) => {
         setCategory(newCategory);
     };
@@ -203,8 +182,6 @@ export default function NewsHome() {
             <div className="min-h-screen transition-colors duration-500">
                 <SiteHeader
                     setQuery={setQuery}
-                    isDarkMode={isDarkMode}
-                    setIsDarkMode={handleToggleTheme}
                     searchActive={query.trim() !== ""}
                     sentimentFilter={sentimentFilter}
                     setSentimentFilter={setSentimentFilter}
