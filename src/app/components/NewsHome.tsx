@@ -448,6 +448,7 @@ export default function NewsHome() {
                                         key={i}
                                         className="bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden animate-pulse shadow-lg shadow-gray-100/60 dark:shadow-none"
                                     >
+                                        <div className="aspect-[16/9] w-full bg-gray-200 dark:bg-white/10" />
                                         <div className="p-6 space-y-3">
                                             <div className="flex justify-between">
                                                 <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-md" />

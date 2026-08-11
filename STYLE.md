@@ -269,6 +269,27 @@ inversi + `shadow`, yang pasif hanya teks.
 ### Kartu berita
 Seluruh kartu satu target klik: `<Link className="absolute inset-0 z-10">` di dalam
 `<article className="group relative">`. Kontrol interaktif di dalamnya harus `z-20`.
+
+Diawali blok gambar `aspect-[16/9] rounded-t-2xl overflow-hidden` berisi tiga
+keadaan: memuat (`animate-pulse`), ada gambar (`object-cover` +
+`group-hover:scale-105`), dan tanpa gambar (gradien + ikon redup — bukan area
+kosong, supaya tinggi kartu dalam satu baris tetap rata). Gambarnya `og:image`
+hasil scraping halaman sumber, lihat [gambar.ts](src/lib/gambar.ts).
+
+Dua jalur render, dipilih dengan `bolehDioptimasi()` dari
+[host-gambar.mjs](src/lib/host-gambar.mjs):
+
+- **CDN portal yang terdaftar** → `next/image` dengan `fill` + `sizes`.
+  Terukur: 188 KB JPEG asli menjadi 41 KB WebP pada `w=640`.
+- **Host lain** → `<img>` biasa. Tampil, tanpa optimasi, tidak rusak.
+
+`remotePatterns` sengaja berisi daftar domain, **bukan** `hostname: "**"` —
+wildcard itu mengubah `/_next/image` menjadi proxy gambar terbuka untuk alamat
+sembarang. Daftarnya dibangun dari pengukuran atas data nyata, bukan tebakan.
+
+Apa pun jalurnya, selalu sertakan `alt=""` (judul tepat di bawahnya sudah
+menjelaskan gambar) dan `onError` yang jatuh ke placeholder; jalur `<img>`
+tambahkan `loading="lazy"` dan `referrerPolicy="no-referrer"`.
 ```tsx
 className="group relative flex flex-col bg-white dark:bg-[#0c0c20]
            border border-gray-200 dark:border-white/5 rounded-2xl

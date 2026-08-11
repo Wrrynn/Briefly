@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import BookmarkButton from "@/app/components/BookmarkButton";
 import IkonMata from "@/app/components/IkonMata";
+import { ambilGambar } from "@/lib/gambar-client";
+import { bolehDioptimasi } from "@/lib/host-gambar.mjs";
 
 // Sentimen kartu mewakili gabungan sentimen semua aktor:
 // - semua Positif  -> "Positif"
@@ -37,7 +41,51 @@ function labelWaktu(data: any): string {
 
 const MAKS_PORTAL = 2; // dijaga tetap satu baris agar tinggi kartu rata
 
+// Ditampilkan saat klaster tidak punya gambar sama sekali, atau saat gambar
+// dari portal gagal dimuat. Bukan area kosong: tinggi kartu tetap seragam
+// dalam satu baris grid.
+function GambarKosong() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-white/[0.06] dark:to-white/[0.02]">
+      <svg
+        className="h-9 w-9 text-gray-300 dark:text-white/15"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16v14H4z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 9h5M8 13h8M8 16h8" />
+      </svg>
+    </div>
+  );
+}
+
 export default function NewsCard({ data }: any) {
+  const idKlaster = data.id == null ? null : Number(data.id);
+
+  // undefined = masih diambil, null = tidak ada gambar, string = URL siap pakai.
+  // Kartu tanpa id langsung dimulai dari null: tidak ada yang bisa diambil,
+  // jadi jangan menampilkan animasi memuat yang tidak akan pernah selesai.
+  const [gambar, setGambar] = useState<string | null | undefined>(
+    idKlaster == null ? null : undefined,
+  );
+  const [gagalMuat, setGagalMuat] = useState(false);
+
+  useEffect(() => {
+    if (idKlaster == null) return;
+    let aktif = true;
+    ambilGambar(idKlaster).then((url) => {
+      if (!aktif) return;
+      setGagalMuat(false);
+      setGambar(url);
+    });
+    return () => {
+      aktif = false;
+    };
+  }, [idKlaster]);
+
   const sentiment = getCardSentiment(data.sentiments);
   const portals: string[] = data.portals || [];
   const sisaPortal = (data.portalCount || portals.length) - MAKS_PORTAL;
@@ -56,6 +104,43 @@ export default function NewsCard({ data }: any) {
         aria-label={data.title}
         className="absolute inset-0 z-10 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       />
+
+      {/* Gambar pratinjau — og:image halaman berita sumber.
+          Gambar dari CDN portal yang sudah dikenal dilewatkan ke pengoptimal
+          Next.js: ukuran aslinya ~1200px (±190 KB), sementara kartu hanya butuh
+          ~400px. Host di luar daftar tetap tampil lewat <img> biasa — tanpa
+          optimasi, tapi tidak rusak. Daftar host: src/lib/host-gambar.mjs */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-t-2xl bg-gray-100 dark:bg-white/[0.04]">
+        {gambar && !gagalMuat ? (
+          bolehDioptimasi(gambar) ? (
+            <Image
+              src={gambar}
+              alt=""
+              fill
+              // Kartu: 1 kolom di ponsel, 2 di tablet, 3 di layar lebar
+              // (maks 1280px) — jadi lebar tayangnya sekitar 400px.
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
+              onError={() => setGagalMuat(true)}
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- host di luar daftar remotePatterns
+            <img
+              src={gambar}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onError={() => setGagalMuat(true)}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          )
+        ) : gambar === undefined ? (
+          <div className="h-full w-full animate-pulse bg-gray-200 dark:bg-white/[0.06]" />
+        ) : (
+          <GambarKosong />
+        )}
+      </div>
 
       <div className="flex flex-col flex-1 p-6">
         {/* Kategori + sentimen + simpan */}
