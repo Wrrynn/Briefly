@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import CategoryFilter from "@/app/components/CategoryFilter";
 import SentimentFilter from "@/app/components/SentimentFilter";
 import NewsCard from "@/app/components/NewsCard";
+import KerangkaKartu from "@/app/components/KerangkaKartu";
 import SiteHeader from "@/app/components/SiteHeader";
 import HeroSection from "@/app/components/HeroSection";
 import Footer from "@/app/components/Footer";
@@ -422,23 +423,7 @@ export default function NewsHome() {
                         {loadingNews ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                                    <div
-                                        key={i}
-                                        className="bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden animate-pulse shadow-lg shadow-gray-100/60 dark:shadow-none"
-                                    >
-                                        <div className="aspect-[16/9] w-full bg-gray-200 dark:bg-white/10" />
-                                        <div className="p-6 space-y-3">
-                                            <div className="flex justify-between">
-                                                <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-md" />
-                                                <div className="h-5 w-14 bg-gray-200 dark:bg-white/10 rounded-md" />
-                                            </div>
-                                            <div className="h-3 bg-gray-200 dark:bg-white/10 rounded w-2/5" />
-                                            <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-full mt-3" />
-                                            <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-4/5" />
-                                            <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mt-3" />
-                                            <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-3/4" />
-                                        </div>
-                                    </div>
+                                    <KerangkaKartu key={i} />
                                 ))}
                             </div>
                         ) : (

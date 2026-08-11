@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import NewsCard from "@/app/components/NewsCard";
+import KerangkaKartu from "@/app/components/KerangkaKartu";
 import Footer from "@/app/components/Footer";
 import { temaGelapAktif, terapkanTema } from "@/lib/tema";
 
@@ -222,9 +223,32 @@ export default function ProfilPage() {
 
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
                 {memuat ? (
-                    <div className="space-y-6">
-                        <div className="h-28 rounded-3xl bg-gray-100 dark:bg-white/5 animate-pulse" />
-                        <div className="h-20 rounded-3xl bg-gray-100 dark:bg-white/5 animate-pulse" />
+                    // Meniru susunan halaman aslinya: identitas (avatar + nama),
+                    // tiga kotak statistik, lalu deretan tab. Versi lama hanya dua
+                    // batang panjang yang tidak menyerupai apa pun di bawahnya.
+                    <div className="animate-pulse">
+                        <div className="flex flex-wrap items-center gap-5 sm:gap-6">
+                            <div className="h-16 w-16 shrink-0 rounded-2xl bg-gray-200 dark:bg-white/10" />
+                            <div className="min-w-0 space-y-2.5">
+                                <div className="h-6 w-48 rounded bg-gray-200 dark:bg-white/10" />
+                                <div className="h-3.5 w-64 rounded bg-gray-100 dark:bg-white/5" />
+                            </div>
+                        </div>
+
+                        <div className="mt-8 grid grid-cols-3 gap-3 sm:gap-4">
+                            {[1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className="h-[92px] rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/[0.04]"
+                                />
+                            ))}
+                        </div>
+
+                        <div className="mt-10 flex gap-2 border-b border-gray-200 dark:border-white/10 pb-3">
+                            {[1, 2, 3, 4].map((i) => (
+                                <div key={i} className="h-4 w-24 rounded bg-gray-100 dark:bg-white/5" />
+                            ))}
+                        </div>
                     </div>
                 ) : (
                     <>
@@ -508,13 +532,13 @@ export default function ProfilPage() {
 /* ============================ SUB-KOMPONEN ============================ */
 
 function SkeletonGrid() {
+    // Memakai kerangka yang sama dengan feed. Versi lama hanya blok h-52 polos —
+    // jauh lebih pendek daripada kartu sebenarnya, sehingga isi halaman melompat
+    // begitu data datang.
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-                <div
-                    key={i}
-                    className="h-52 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse"
-                />
+                <KerangkaKartu key={i} />
             ))}
         </div>
     );
