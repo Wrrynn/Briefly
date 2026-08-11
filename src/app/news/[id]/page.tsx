@@ -13,6 +13,7 @@ import LoadingSkeleton, {
 } from "@/app/components/detail/LoadingSkeleton";
 import FramingComparison from "@/app/components/detail/FramingComparison";
 import BookmarkButton from "@/app/components/BookmarkButton";
+import GambarBerita from "@/app/components/GambarBerita";
 import TombolTema from "@/app/components/TombolTema";
 import Footer from "@/app/components/Footer";
 import type { NewsItem } from "@/app/data/mockNews";
@@ -257,6 +258,20 @@ export default function NewsDetailPage() {
                         <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 xl:gap-20">
                             <div className="min-w-0">
                                 <NewsHeader news={news} />
+
+                                {/* Gambar utama, di bawah judul dan di atas
+                                    metadata. Sumbernya sama dengan gambar kartu
+                                    (og:image portal) dan biasanya sudah ter-cache
+                                    dari halaman daftar, jadi hampir selalu muncul
+                                    seketika. priority karena posisinya di layar
+                                    pertama. */}
+                                <GambarBerita
+                                    idKlaster={news.id == null ? null : Number(news.id)}
+                                    sizes="(max-width: 1024px) 100vw, 900px"
+                                    className="mb-8 aspect-[16/9] w-full rounded-[1.5rem] border border-gray-200 dark:border-white/[0.06]"
+                                    priority
+                                />
+
                                 <NewsMeta news={news} />
                                 <NewsContent news={news} />
                             </div>
