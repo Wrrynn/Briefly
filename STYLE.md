@@ -154,10 +154,17 @@ meta dan chip, `font-light`/`font-normal` hanya di `.prose-custom`.
 
 ### Isi artikel
 
-Kelas utilitas `.prose-custom` ([globals.css:135-149](src/app/globals.css#L135-L149))
-memberi paragraf 15px/1.85 dan menonjolkan paragraf pertama. Catatan: nilainya
-di-hardcode `rgba(255,255,255,…)` sehingga hanya benar di mode gelap — perbaiki di
-sana kalau butuh mode terang, jangan menimpanya per komponen.
+Paragraf artikel di halaman detail memakai kelas langsung, bukan plugin:
+`text-[17px] md:text-[19px] leading-[1.8] text-gray-800 dark:text-white/80
+font-medium text-justify` ([NewsContent.tsx:12](src/app/components/detail/NewsContent.tsx#L12)).
+
+Dua sisa yang menyesatkan dan sebaiknya dibereskan:
+- `.prose-custom` di [globals.css:135-149](src/app/globals.css#L135-L149) **tidak
+  dipakai di berkas mana pun** — CSS mati.
+- `prose prose-lg dark:prose-invert` di
+  [NewsContent.tsx:7](src/app/components/detail/NewsContent.tsx#L7) tidak
+  berpengaruh apa-apa: plugin `@tailwindcss/typography` tidak terpasang di proyek
+  ini. Pasang plugin-nya, atau hapus kelasnya.
 
 ---
 
