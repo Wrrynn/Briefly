@@ -13,6 +13,8 @@ import LoadingSkeleton, {
 } from "@/app/components/detail/LoadingSkeleton";
 import FramingComparison from "@/app/components/detail/FramingComparison";
 import BookmarkButton from "@/app/components/BookmarkButton";
+import GambarBerita from "@/app/components/GambarBerita";
+import TombolTema from "@/app/components/TombolTema";
 import Footer from "@/app/components/Footer";
 import type { NewsItem } from "@/app/data/mockNews";
 import { createClient } from "@/lib/supabase/client";
@@ -40,35 +42,10 @@ export default function NewsDetailPage() {
     const [notFound, setNotFound] = useState(false);
     const [relatedNews, setRelatedNews] = useState<EnrichedNews[]>([]);
 
-    // === TEMA ===
-    const [isDarkMode, setIsDarkMode] = useState(false);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-        const savedTheme = localStorage.getItem("theme");
-        const isDark =
-            savedTheme === "dark" ||
-            (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches); // Menggunakan matchMedia lebih akurat dari classList saat init
-        
-        setIsDarkMode(isDark);
-        if (isDark) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-    }, []);
-
-    const toggleTheme = () => {
-        const newTheme = !isDarkMode;
-        setIsDarkMode(newTheme);
-        localStorage.setItem("theme", newTheme ? "dark" : "light");
-        if (newTheme) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-    };
+    // Tema diurus terpusat: class `dark` dipasang SKRIP_TEMA di layout sebelum
+    // paint, dan tombolnya ada di komponen TombolTema. Halaman ini dulu punya
+    // aturan default sendiri (ikut preferensi OS) yang berbeda dari beranda —
+    // itulah sebab tema bisa berubah saat berpindah halaman.
 
     // === FETCH BERITA UTAMA ===
     useEffect(() => {
@@ -204,13 +181,10 @@ export default function NewsDetailPage() {
         };
     }, [trackedId]);
 
-    // Mencegah flash content / hydration error
-    const themeClass = mounted && isDarkMode ? "dark" : "";
-
     // === 404 RENDER ===
     if (!loading && notFound) {
         return (
-            <main className={`${themeClass} relative min-h-screen w-full bg-gray-50 dark:bg-[#05051a] flex items-center justify-center transition-colors duration-500`}>
+            <main className="relative min-h-screen w-full bg-gray-50 dark:bg-[#05051a] flex items-center justify-center transition-colors duration-500">
                 <div className="relative z-10 text-center px-4">
                     <p className="text-[80px] font-black text-gray-200 dark:text-white/[0.04] leading-none mb-4 select-none">404</p>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Berita Tidak Ditemukan</h1>
@@ -227,7 +201,7 @@ export default function NewsDetailPage() {
 
     // === MAIN RENDER ===
     return (
-        <main className={`${themeClass} relative min-h-screen w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500`}>
+        <main className="relative min-h-screen w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500">
             {/* NAVBAR */}
             <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-[#05051a]/80 backdrop-blur-2xl transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -247,19 +221,7 @@ export default function NewsDetailPage() {
                         {news?.id != null && (
                             <BookmarkButton id={Number(news.id)} ukuran="besar" />
                         )}
-                        {mounted && (
-                            <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-all active:scale-90">
-                                {isDarkMode ? (
-                                    <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                                    </svg>
-                                ) : (
-                                    <svg className="w-4 h-4 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                                    </svg>
-                                )}
-                            </button>
-                        )}
+                        <TombolTema />
 
                         {news && (
                             <div className="hidden sm:flex items-center gap-2">
@@ -296,6 +258,20 @@ export default function NewsDetailPage() {
                         <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12 xl:gap-20">
                             <div className="min-w-0">
                                 <NewsHeader news={news} />
+
+                                {/* Gambar utama, di bawah judul dan di atas
+                                    metadata. Sumbernya sama dengan gambar kartu
+                                    (og:image portal) dan biasanya sudah ter-cache
+                                    dari halaman daftar, jadi hampir selalu muncul
+                                    seketika. priority karena posisinya di layar
+                                    pertama. */}
+                                <GambarBerita
+                                    idKlaster={news.id == null ? null : Number(news.id)}
+                                    sizes="(max-width: 1024px) 100vw, 900px"
+                                    className="mb-8 aspect-[16/9] w-full rounded-[1.5rem] border border-gray-200 dark:border-white/[0.06]"
+                                    priority
+                                />
+
                                 <NewsMeta news={news} />
                                 <NewsContent news={news} />
                             </div>

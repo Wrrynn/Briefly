@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import CategoryFilter from "@/app/components/CategoryFilter";
 import SentimentFilter from "@/app/components/SentimentFilter";
 import NewsCard from "@/app/components/NewsCard";
+import KerangkaKartu from "@/app/components/KerangkaKartu";
 import SiteHeader from "@/app/components/SiteHeader";
 import HeroSection from "@/app/components/HeroSection";
 import Footer from "@/app/components/Footer";
@@ -68,21 +69,8 @@ export default function NewsHome() {
     // Dinaikkan oleh tombol "Coba lagi" untuk memicu ulang fetch.
     const [reloadKey, setReloadKey] = useState(0);
 
-    const [isDarkMode, setIsDarkMode] = useState(true);
-    const [mounted, setMounted] = useState(false);
-
-    // Efek Pengaturan Tema (Dark Mode)
-    useEffect(() => {
-        setMounted(true);
-        const savedTheme = localStorage.getItem("theme");
-        const isDark = savedTheme === "dark" || (!savedTheme && true);
-        setIsDarkMode(isDark);
-        if (isDark) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-    }, []);
+    // Tema tidak lagi diurus di sini: class `dark` sudah dipasang sebelum paint
+    // pertama oleh SKRIP_TEMA di layout, dan tombolnya ada di SiteHeader.
 
     // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, rentang, atau urutan berubah
     useEffect(() => {
@@ -176,17 +164,6 @@ export default function NewsHome() {
     const filteredNews = allNews;
     const totalPages = totalNewsCount > 0 ? Math.ceil(totalNewsCount / ITEMS_PER_PAGE) : 1;
 
-    const handleToggleTheme = (newMode: boolean) => {
-        setIsDarkMode(newMode);
-        if (newMode) {
-            document.documentElement.classList.add("dark");
-            localStorage.setItem("theme", "dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-            localStorage.setItem("theme", "light");
-        }
-    };
-
     const handleCategoryChange = (newCategory: string) => {
         setCategory(newCategory);
     };
@@ -196,15 +173,16 @@ export default function NewsHome() {
         document.getElementById("news-content")?.scrollIntoView({ behavior: "smooth" });
     };
 
-    if (!mounted) return null;
-
+    // Tidak ada lagi gerbang `if (!mounted) return null` di sini. Dulu server
+    // mengirim halaman KOSONG dan pengguna menatap layar putih sampai JavaScript
+    // selesai dimuat. Semua yang membutuhkan browser (localStorage, fetch,
+    // scrollIntoView) sudah berada di dalam effect atau event handler, sehingga
+    // render pertama — header, hero, dan kerangka kartu — aman dari server.
     return (
         <main className="min-h-screen transition-colors duration-500 bg-gray-50 dark:bg-[#05051a]">
             <div className="min-h-screen transition-colors duration-500">
                 <SiteHeader
                     setQuery={setQuery}
-                    isDarkMode={isDarkMode}
-                    setIsDarkMode={handleToggleTheme}
                     searchActive={query.trim() !== ""}
                     sentimentFilter={sentimentFilter}
                     setSentimentFilter={setSentimentFilter}
@@ -276,9 +254,10 @@ export default function NewsHome() {
                             {/* Baris kontrol: tombol filter + ringkasan filter aktif */}
                             <div className="flex flex-wrap items-center gap-3">
                                 <button
+                                    type="button"
                                     onClick={() => setShowFilters((v) => !v)}
                                     aria-expanded={showFilters}
-                                    className={`relative flex items-center gap-2.5 pl-4 pr-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 outline-none border ${
+                                    className={`relative flex items-center gap-2.5 pl-4 pr-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-[#05051a] border ${
                                         showFilters || activeFilterCount > 0
                                             ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-[0_10px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                                             : "bg-white dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20"
@@ -444,23 +423,7 @@ export default function NewsHome() {
                         {loadingNews ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                                    <div
-                                        key={i}
-                                        className="bg-white dark:bg-[#0c0c20] border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden animate-pulse shadow-lg shadow-gray-100/60 dark:shadow-none"
-                                    >
-                                        <div className="aspect-[16/9] w-full bg-gray-200 dark:bg-white/10" />
-                                        <div className="p-6 space-y-3">
-                                            <div className="flex justify-between">
-                                                <div className="h-6 w-20 bg-gray-200 dark:bg-white/10 rounded-md" />
-                                                <div className="h-5 w-14 bg-gray-200 dark:bg-white/10 rounded-md" />
-                                            </div>
-                                            <div className="h-3 bg-gray-200 dark:bg-white/10 rounded w-2/5" />
-                                            <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-full mt-3" />
-                                            <div className="h-5 bg-gray-200 dark:bg-white/10 rounded w-4/5" />
-                                            <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-full mt-3" />
-                                            <div className="h-3 bg-gray-100 dark:bg-white/5 rounded w-3/4" />
-                                        </div>
-                                    </div>
+                                    <KerangkaKartu key={i} />
                                 ))}
                             </div>
                         ) : (

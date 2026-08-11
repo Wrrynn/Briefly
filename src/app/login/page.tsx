@@ -69,23 +69,39 @@ function LoginForm() {
       </div>
 
       <GlassCard>
+        {/* role="alert" agar pesan ini dibacakan saat muncul — tanpa itu
+            pengguna pembaca layar tidak tahu kenapa login gagal. */}
         {expired && (
-          <div className="mb-5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          <div
+            role="alert"
+            className="mb-5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-300"
+          >
             Sesi berakhir setelah 6 jam. Silakan masuk kembali.
           </div>
         )}
         {error && (
-          <div className="mb-5 rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div
+            role="alert"
+            className="mb-5 rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          >
             {error}
           </div>
         )}
 
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div>
-            <label className={labelClass}>Email</label>
+            {/* htmlFor + id: sebelumnya label tidak terhubung ke input mana pun,
+                jadi mengklik teksnya tidak memfokuskan kolom dan pembaca layar
+                hanya menyebut "kolom isian" tanpa nama. */}
+            <label htmlFor="login-email" className={labelClass}>
+              Email
+            </label>
             <input
+              id="login-email"
+              name="email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nama@email.com"
@@ -94,10 +110,15 @@ function LoginForm() {
           </div>
 
           <div>
-            <label className={labelClass}>Kata Sandi</label>
+            <label htmlFor="login-password" className={labelClass}>
+              Kata Sandi
+            </label>
             <input
+              id="login-password"
+              name="password"
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -105,7 +126,7 @@ function LoginForm() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className={primaryBtnClass}>
+          <button type="submit" disabled={loading} aria-busy={loading} className={primaryBtnClass}>
             {loading ? "Memproses…" : "Masuk"}
           </button>
         </form>
@@ -116,7 +137,13 @@ function LoginForm() {
           <div className="h-px flex-1 bg-white/10" />
         </div>
 
-        <button onClick={handleGoogleLogin} disabled={loading} className={googleBtnClass}>
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          aria-busy={loading}
+          className={googleBtnClass}
+        >
           <GoogleIcon />
           Masuk dengan Google
         </button>

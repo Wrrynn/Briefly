@@ -56,9 +56,14 @@ export default function SentimentFilter({ selected, setSelected }: SentimentFilt
                 return (
                     <button
                         key={opt.label}
+                        type="button"
                         // "Semua" mengosongkan filter; klik opsi aktif lain juga reset ke "Semua".
                         onClick={() => setSelected(isSemua || isActive ? "Semua" : opt.label)}
-                        className="relative px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 outline-none group"
+                        // Lihat catatan yang sama di CategoryFilter: status
+                        // terpilih perlu diumumkan, dan fokus keyboard perlu
+                        // penanda karena latar tombol digambar elemen absolut.
+                        aria-pressed={isActive}
+                        className="relative px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#05051a] group"
                     >
                         {isActive ? (
                             <motion.div
