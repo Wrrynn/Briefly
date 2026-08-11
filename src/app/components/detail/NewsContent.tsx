@@ -4,7 +4,11 @@ export default function NewsContent({ news }: { news: NewsItem }) {
     const paragraphs = news.fullContent?.split("\n\n") || [news.description];
 
     return (
-        <article className="prose prose-lg dark:prose-invert max-w-none pb-20">
+        // Kelas `prose prose-lg dark:prose-invert` sudah dibuang: plugin
+        // @tailwindcss/typography tidak terpasang di proyek ini, jadi ketiganya
+        // tidak berpengaruh apa pun. Gaya paragraf memang ditulis langsung di
+        // bawah — kelas yang tidak aktif hanya menyesatkan yang mengedit nanti.
+        <article className="max-w-none pb-20">
             <div className="space-y-6">
                 {paragraphs.map((p, i) => (
                     <p
