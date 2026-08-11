@@ -98,18 +98,28 @@ export default function RegisterPage() {
           </div>
         ) : (
           <>
+            {/* role="alert" agar galat pendaftaran dibacakan saat muncul. */}
             {error && (
-              <div className="mb-5 rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              <div
+                role="alert"
+                className="mb-5 rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+              >
                 {error}
               </div>
             )}
 
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
-                <label className={labelClass}>Nama Lengkap</label>
+                {/* htmlFor + id: label sebelumnya tidak terhubung ke input. */}
+                <label htmlFor="daftar-nama" className={labelClass}>
+                  Nama Lengkap
+                </label>
                 <input
+                  id="daftar-nama"
+                  name="name"
                   type="text"
                   required
+                  autoComplete="name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Nama kamu"
@@ -118,10 +128,15 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className={labelClass}>Email</label>
+                <label htmlFor="daftar-email" className={labelClass}>
+                  Email
+                </label>
                 <input
+                  id="daftar-email"
+                  name="email"
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@email.com"
@@ -130,11 +145,18 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className={labelClass}>Kata Sandi</label>
+                <label htmlFor="daftar-sandi" className={labelClass}>
+                  Kata Sandi
+                </label>
                 <input
+                  id="daftar-sandi"
+                  name="password"
                   type="password"
                   required
                   minLength={6}
+                  // "new-password" memberi tahu pengelola kata sandi bahwa ini
+                  // pembuatan akun, bukan pengisian sandi lama.
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
@@ -142,7 +164,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <button type="submit" disabled={loading} className={primaryBtnClass}>
+              <button type="submit" disabled={loading} aria-busy={loading} className={primaryBtnClass}>
                 {loading ? "Memproses…" : "Daftar"}
               </button>
             </form>
@@ -153,7 +175,13 @@ export default function RegisterPage() {
               <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            <button onClick={handleGoogleRegister} disabled={loading} className={googleBtnClass}>
+            <button
+              type="button"
+              onClick={handleGoogleRegister}
+              disabled={loading}
+              aria-busy={loading}
+              className={googleBtnClass}
+            >
               <GoogleIcon />
               Daftar dengan Google
             </button>
