@@ -56,7 +56,6 @@ function waktuRelatif(iso?: string | null) {
 }
 
 export default function ProfilPage() {
-    const [mounted, setMounted] = useState(false);
     // Dibaca dari dokumen, bukan dari localStorage lagi — SKRIP_TEMA sudah
     // menerjemahkan preferensi tersimpan menjadi class `dark` sebelum paint.
     const [isDarkMode, setIsDarkMode] = useState(
@@ -80,8 +79,6 @@ export default function ProfilPage() {
     // Pemasangan class `dark` sudah dilakukan SKRIP_TEMA di layout sebelum paint.
     // Yang tersisa di sini hanya sakelar di tab Setelan, yang perlu tahu keadaan
     // sekarang untuk menampilkan posisi on/off-nya.
-    useEffect(() => setMounted(true), []);
-
     const gantiTema = (gelap: boolean) => {
         setIsDarkMode(gelap);
         terapkanTema(gelap);
@@ -194,8 +191,8 @@ export default function ProfilPage() {
         }
     };
 
-    if (!mounted) return null;
-
+    // Tanpa gerbang `if (!mounted) return null`: render pertama dari server
+    // sudah menampilkan navbar dan kerangka isi, bukan halaman kosong.
     return (
         <main className="min-h-screen bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500">
             {/* NAVBAR */}

@@ -68,11 +68,8 @@ export default function NewsHome() {
     // Dinaikkan oleh tombol "Coba lagi" untuk memicu ulang fetch.
     const [reloadKey, setReloadKey] = useState(0);
 
-    const [mounted, setMounted] = useState(false);
-
     // Tema tidak lagi diurus di sini: class `dark` sudah dipasang sebelum paint
     // pertama oleh SKRIP_TEMA di layout, dan tombolnya ada di SiteHeader.
-    useEffect(() => setMounted(true), []);
 
     // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, rentang, atau urutan berubah
     useEffect(() => {
@@ -175,8 +172,11 @@ export default function NewsHome() {
         document.getElementById("news-content")?.scrollIntoView({ behavior: "smooth" });
     };
 
-    if (!mounted) return null;
-
+    // Tidak ada lagi gerbang `if (!mounted) return null` di sini. Dulu server
+    // mengirim halaman KOSONG dan pengguna menatap layar putih sampai JavaScript
+    // selesai dimuat. Semua yang membutuhkan browser (localStorage, fetch,
+    // scrollIntoView) sudah berada di dalam effect atau event handler, sehingga
+    // render pertama — header, hero, dan kerangka kartu — aman dari server.
     return (
         <main className="min-h-screen transition-colors duration-500 bg-gray-50 dark:bg-[#05051a]">
             <div className="min-h-screen transition-colors duration-500">
