@@ -36,6 +36,11 @@ export default function RootLayout({
         <html
             lang="id"
             className={`${fontSans.variable} ${geistMono.variable} h-full antialiased`}
+            // globals.css memasang scroll-behavior: smooth agar lompatan ke
+            // #news-content terlihat halus. Tanpa atribut ini Next ikut
+            // menghaluskan perpindahan ANTAR HALAMAN, sehingga membuka satu
+            // berita terasa seperti tergulir panjang alih-alih berganti halaman.
+            data-scroll-behavior="smooth"
             // Skrip di bawah menambahkan class `dark` sebelum React hydrate,
             // jadi atribut class di klien memang berbeda dari hasil server.
             suppressHydrationWarning
