@@ -526,13 +526,20 @@ export default function ProfilPage() {
                                                     </div>
                                                 </BarisSetelan>
 
+                                                {/* Sakelar ini sebelumnya tampil menyala biru, padahal
+                                                    pengiriman email memang belum ada — pengguna wajar
+                                                    mengira ia sudah berlangganan sesuatu. Selama
+                                                    fiturnya belum jalan, sakelarnya dinonaktifkan dan
+                                                    diberi penanda, bukan dibiarkan tampak berfungsi. */}
                                                 <BarisSetelan
                                                     judul="Ringkasan harian lewat email"
-                                                    keterangan="Preferensi tersimpan. Pengiriman email belum aktif."
+                                                    lencana="Belum tersedia"
+                                                    keterangan="Akan hadir setelah pengiriman email disiapkan."
                                                 >
                                                     <Sakelar
-                                                        aktif={Boolean(preferensi?.digest_harian)}
-                                                        onChange={(v) => simpanPreferensi({ digest_harian: v })}
+                                                        aktif={false}
+                                                        nonaktif
+                                                        onChange={() => {}}
                                                     />
                                                 </BarisSetelan>
 
@@ -643,16 +650,26 @@ function KartuAktor({
 function BarisSetelan({
     judul,
     keterangan,
+    lencana,
     children,
 }: {
     judul: string;
     keterangan: string;
+    /** Penanda kecil di samping judul, mis. untuk fitur yang belum berjalan. */
+    lencana?: string;
     children: React.ReactNode;
 }) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] px-5 py-4">
             <div className="min-w-0">
-                <p className="text-sm font-bold">{judul}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm font-bold">
+                    {judul}
+                    {lencana && (
+                        <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-400">
+                            {lencana}
+                        </span>
+                    )}
+                </p>
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-white/35">{keterangan}</p>
             </div>
             {children}
@@ -660,20 +677,40 @@ function BarisSetelan({
     );
 }
 
-function Sakelar({ aktif, onChange }: { aktif: boolean; onChange: (v: boolean) => void }) {
+function Sakelar({
+    aktif,
+    onChange,
+    nonaktif = false,
+}: {
+    aktif: boolean;
+    onChange: (v: boolean) => void;
+    /** Sakelar yang fiturnya memang belum berjalan — lihat catatan di tab Setelan. */
+    nonaktif?: boolean;
+}) {
     return (
         <button
+            type="button"
             role="switch"
             aria-checked={aktif}
+            disabled={nonaktif}
             onClick={() => onChange(!aktif)}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                aktif ? "bg-blue-600" : "bg-gray-300 dark:bg-white/15"
+            className={`relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#05051a] ${
+                nonaktif
+                    ? "cursor-not-allowed bg-gray-200 dark:bg-white/10"
+                    : aktif
+                        ? "bg-blue-600"
+                        : "bg-gray-300 dark:bg-white/15"
             }`}
         >
+            {/* `left-0.5` WAJIB ada. Tanpa properti left, elemen absolut memakai
+                posisi statisnya — dan `text-align: center` bawaan <button> membuat
+                posisi itu jatuh di tengah track, bukan di tepi kiri. Akibatnya
+                knob mulai dari 12px lalu digeser lagi, sehingga menonjol keluar
+                dari track saat menyala dan berhenti di tengah saat mati. */}
             <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                    aktif ? "translate-x-[22px]" : "translate-x-0.5"
-                }`}
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full shadow transition-transform duration-200 ${
+                    nonaktif ? "bg-gray-400 dark:bg-white/30" : "bg-white"
+                } ${aktif ? "translate-x-5" : "translate-x-0"}`}
             />
         </button>
     );
