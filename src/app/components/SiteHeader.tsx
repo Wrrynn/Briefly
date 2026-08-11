@@ -80,6 +80,9 @@ export default function SiteHeader({
                 }}
                 placeholder="Cari analisis berita"
                 aria-label="Cari analisis berita"
+                // outline-none di sini disengaja dan sudah ada penggantinya:
+                // wadahnya memakai focus-within:border-blue-600, jadi fokus
+                // tetap terlihat sebagai bingkai di seluruh kotak cari.
                 className="w-full min-w-0 border-none bg-transparent py-2 text-sm font-semibold text-gray-900 outline-none placeholder-gray-400 dark:text-white dark:placeholder-white/40"
             />
             {searchActive && (
@@ -108,7 +111,10 @@ export default function SiteHeader({
     return (
         <header className="sticky top-0 z-50 border-b border-gray-200 bg-gray-50/85 backdrop-blur-2xl transition-colors duration-500 dark:border-white/[0.06] dark:bg-[#05051a]/85">
             <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-5 sm:px-8">
-                <Link href="/" className="group flex shrink-0 items-center gap-3 outline-none">
+                <Link
+                    href="/"
+                    className="group flex shrink-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-[#05051a]"
+                >
                     <Image
                         src="/images/Briefly-logo.png"
                         alt="Logo Briefly"

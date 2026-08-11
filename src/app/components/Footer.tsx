@@ -64,7 +64,10 @@ export default function Footer() {
                 <div className="grid grid-cols-2 md:grid-cols-12 gap-10">
                     {/* Brand + social */}
                     <div className="col-span-2 md:col-span-4">
-                        <Link href="/" className="group inline-flex items-center gap-3 outline-none">
+                        <Link
+                            href="/"
+                            className="group inline-flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05051a]"
+                        >
                             <Image
                                 src="/images/Briefly-logo.png"
                                 alt="Logo Briefly"

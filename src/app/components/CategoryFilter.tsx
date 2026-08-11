@@ -31,8 +31,16 @@ export default function CategoryFilter({ selected, setSelected }: CategoryFilter
                 return (
                     <button
                         key={cat}
+                        type="button"
                         onClick={() => setSelected(cat)}
-                        className="relative px-6 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 outline-none group"
+                        // Status terpilih hanya terlihat lewat warna. Tanpa
+                        // aria-pressed, pembaca layar cuma mendengar nama
+                        // kategorinya tanpa tahu mana yang sedang aktif.
+                        aria-pressed={isActive}
+                        // outline-none dipakai karena latar tombol digambar
+                        // elemen absolut di belakangnya; penggantinya wajib ada
+                        // agar navigasi keyboard tidak kehilangan jejak.
+                        className="relative px-6 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#05051a] group"
                     >
                         {/* Background Logic */}
                         {isActive ? (
