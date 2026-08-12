@@ -9,6 +9,9 @@ import TombolTema from "@/app/components/TombolTema";
 
 interface SiteHeaderProps {
     setQuery: (val: string) => void;
+    /** Kata kunci awal dari alamat, supaya kotak cari tidak tampil kosong
+     *  padahal daftarnya sedang tersaring. */
+    queryAwal?: string;
     searchActive?: boolean;
     sentimentFilter?: string;
     setSentimentFilter?: (val: string) => void;
@@ -41,11 +44,12 @@ const PIL_SENTIMEN: { label: string; aktif: string; pasif: string }[] = [
  */
 export default function SiteHeader({
     setQuery,
+    queryAwal = "",
     searchActive,
     sentimentFilter,
     setSentimentFilter,
 }: SiteHeaderProps) {
-    const [input, setInput] = useState("");
+    const [input, setInput] = useState(queryAwal);
     // Popup bisa ditutup dengan Esc tanpa menghapus kata kuncinya. Dibuka lagi
     // begitu pengguna mengetik — mengetik ulang berarti ia sedang menyaring lagi.
     const [popupDitutup, setPopupDitutup] = useState(false);

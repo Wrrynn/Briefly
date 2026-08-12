@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import CategoryFilter from "@/app/components/CategoryFilter";
 import SentimentFilter from "@/app/components/SentimentFilter";
@@ -36,14 +37,56 @@ function umurHari(iso?: string | null): number | null {
     return Math.floor((Date.now() - d.getTime()) / 86_400_000);
 }
 
+// Nama parameter URL. Sengaja berbahasa Indonesia seperti seluruh antarmuka,
+// dan pendek karena akan sering terlihat di bilah alamat.
+const P_CARI = "cari";
+const P_SEKTOR = "sektor";
+const P_SENTIMEN = "sentimen";
+const P_URUT = "urut";
+const P_RENTANG = "rentang";
+const P_HAL = "hal";
+
+const RENTANG_SAH = new Set([0, 1, 7, 30]);
+
 export default function NewsHome() {
-    const [query, setQuery] = useState("");
-    const [category, setCategory] = useState("Semua");
-    const [sentimentFilter, setSentimentFilter] = useState("Semua");
-    const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-    const [showFilters, setShowFilters] = useState(false);
+    // =================================================================
+    // KEADAAN FEED DISIMPAN DI URL
+    // =================================================================
+    // Sebelumnya seluruh keadaan ini hanya hidup di memori React. Akibatnya:
+    // membuka satu berita lalu menekan Back mengembalikan feed ke halaman 1
+    // tanpa filter — padahal "cari → buka → kembali → buka berikutnya" adalah
+    // pola pemakaian utama aplikasi berita. Hasil pencarian juga tidak bisa
+    // dibagikan, dan memuat ulang menghapus semuanya.
+    //
+    // Ditulis dengan router.replace, bukan push: setiap pergantian filter tidak
+    // perlu menambah satu langkah riwayat (Back akan terasa macet), tapi alamat
+    // pada langkah riwayat SEKARANG tetap ikut terbarui — dan itulah yang dibaca
+    // browser saat kembali dari halaman berita.
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const [query, setQuery] = useState(() => searchParams.get(P_CARI) ?? "");
+    const [category, setCategory] = useState(() => searchParams.get(P_SEKTOR) ?? "Semua");
+    const [sentimentFilter, setSentimentFilter] = useState(
+        () => searchParams.get(P_SENTIMEN) ?? "Semua",
+    );
+    const [sortOrder, setSortOrder] = useState<"desc" | "asc">(
+        () => (searchParams.get(P_URUT) === "asc" ? "asc" : "desc"),
+    );
+    // Panel filter dibuka sendiri bila memang ada filter aktif dari URL —
+    // kalau tidak, pengguna melihat hasil tersaring tanpa tahu penyebabnya.
+    const [showFilters, setShowFilters] = useState(
+        () => Boolean(searchParams.get(P_SEKTOR) || searchParams.get(P_SENTIMEN)),
+    );
     // Rentang hari dihitung mundur dari tanggal TERBARU DI DATABASE (0 = semua).
-    const [days, setDays] = useState(7);
+    const [days, setDays] = useState(() => {
+        const n = Number(searchParams.get(P_RENTANG));
+        return RENTANG_SAH.has(n) ? n : 7;
+    });
+    // Rentang dari URL harus menang atas preferensi tersimpan: pengguna yang
+    // membuka tautan bagikan berharap melihat rentang yang ada di tautan itu.
+    const rentangDariUrl = useRef(RENTANG_SAH.has(Number(searchParams.get(P_RENTANG))));
     const [meta, setMeta] = useState<{
         latestDate?: string | null;
         oldestDate?: string | null;
@@ -64,7 +107,10 @@ export default function NewsHome() {
     const [trendingNews, setTrendingNews] = useState<any[]>([]);
     const [loadingTrending, setLoadingTrending] = useState(true);
 
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => {
+        const n = Number(searchParams.get(P_HAL));
+        return Number.isInteger(n) && n > 0 ? n : 1;
+    });
     const [totalNewsCount, setTotalNewsCount] = useState(0);
     // Dinaikkan oleh tombol "Coba lagi" untuk memicu ulang fetch.
     const [reloadKey, setReloadKey] = useState(0);
@@ -72,14 +118,24 @@ export default function NewsHome() {
     // Tema tidak lagi diurus di sini: class `dark` sudah dipasang sebelum paint
     // pertama oleh SKRIP_TEMA di layout, dan tombolnya ada di SiteHeader.
 
-    // Reset halaman ke hal. 1 secara otomatis jika kata pencarian, kategori, sentimen, rentang, atau urutan berubah
+    // Reset halaman ke hal. 1 bila kata pencarian, kategori, sentimen, rentang,
+    // atau urutan berubah. Dilewati pada render pertama — kalau tidak, nomor
+    // halaman yang baru saja dibaca dari URL langsung dihapus lagi.
+    const pertamaKali = useRef(true);
     useEffect(() => {
+        if (pertamaKali.current) {
+            pertamaKali.current = false;
+            return;
+        }
         setCurrentPage(1);
     }, [query, category, sentimentFilter, sortOrder, days]);
 
     // Terapkan rentang default dari preferensi pengguna (halaman /profil).
     // Hanya memicu fetch ulang bila nilainya memang berbeda dari default.
     useEffect(() => {
+        // Rentang yang datang dari URL selalu menang: orang yang membuka tautan
+        // bagikan berharap melihat rentang di tautan itu, bukan preferensinya.
+        if (rentangDariUrl.current) return;
         const ac = new AbortController();
         fetch("/api/profil", { cache: "no-store", signal: ac.signal })
             .then((r) => (r.ok ? r.json() : null))
@@ -92,6 +148,25 @@ export default function NewsHome() {
         // Sengaja hanya sekali saat mount — bukan mengikuti perubahan `days`.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Tulis keadaan sekarang ke alamat. Nilai default sengaja TIDAK ditulis,
+    // supaya alamat tetap bersih selama pengguna belum menyaring apa pun.
+    useEffect(() => {
+        const p = new URLSearchParams();
+        if (query.trim()) p.set(P_CARI, query.trim());
+        if (category !== "Semua") p.set(P_SEKTOR, category);
+        if (sentimentFilter !== "Semua") p.set(P_SENTIMEN, sentimentFilter);
+        if (sortOrder !== "desc") p.set(P_URUT, sortOrder);
+        if (days !== 7) p.set(P_RENTANG, String(days));
+        if (currentPage !== 1) p.set(P_HAL, String(currentPage));
+
+        const qs = p.toString();
+        const tujuan = qs ? `${pathname}?${qs}` : pathname;
+        // scroll: false — memperbarui alamat tidak boleh menggeser posisi baca.
+        if (tujuan !== window.location.pathname + window.location.search) {
+            router.replace(tujuan, { scroll: false });
+        }
+    }, [query, category, sentimentFilter, sortOrder, days, currentPage, pathname, router]);
 
     // Ambil daftar trending (terpisah dari daftar utama yang ter-paginasi/filter)
     useEffect(() => {
@@ -183,6 +258,7 @@ export default function NewsHome() {
             <div className="min-h-screen transition-colors duration-500">
                 <SiteHeader
                     setQuery={setQuery}
+                    queryAwal={query}
                     searchActive={query.trim() !== ""}
                     sentimentFilter={sentimentFilter}
                     setSentimentFilter={setSentimentFilter}
