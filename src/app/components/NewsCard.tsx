@@ -38,7 +38,10 @@ function labelWaktu(data: any): string {
 
 const MAKS_PORTAL = 2; // dijaga tetap satu baris agar tinggi kartu rata
 
-export default function NewsCard({ data }: any) {
+// `peringkat` hanya diisi oleh daftar trending. Angkanya sudah ada sejak awal
+// (urutan hasil skor), tapi tidak pernah ditampilkan — sehingga tiga kartu
+// teratas terbaca sebagai "tiga kartu lagi", bukan papan peringkat.
+export default function NewsCard({ data, peringkat }: any) {
   const idKlaster = data.id == null ? null : Number(data.id);
   const sentiment = getCardSentiment(data.sentiments);
   const portals: string[] = data.portals || [];
@@ -66,6 +69,17 @@ export default function NewsCard({ data }: any) {
         sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
         className="aspect-[16/9] w-full rounded-t-2xl"
       />
+
+      {/* Nomor peringkat. pointer-events-none supaya tidak menghalangi klik
+          kartu, dan latar pekat karena ia duduk di atas foto sembarang. */}
+      {peringkat != null && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-xl bg-gray-900/90 text-base font-black text-white shadow-lg backdrop-blur-sm dark:bg-white/90 dark:text-gray-900"
+        >
+          {peringkat}
+        </span>
+      )}
 
       <div className="flex flex-col flex-1 p-6">
         {/* Kategori + sentimen + simpan */}
@@ -125,14 +139,25 @@ export default function NewsCard({ data }: any) {
           </p>
         )}
 
-        {/* Baris kaki: waktu + jumlah dilihat (dengan ikon mata). */}
-        <div className="mt-auto flex items-center gap-2 border-t border-gray-100 dark:border-white/[0.06] pt-4 text-[11px] text-gray-400 dark:text-white/40">
+        {/* Baris kaki: waktu + jumlah dilihat + lama baca. */}
+        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-gray-100 dark:border-white/[0.06] pt-4 text-[11px] text-gray-400 dark:text-white/40">
           <span className="min-w-0 truncate">{labelWaktu(data)}</span>
           {data.views > 0 && (
             <span className="inline-flex shrink-0 items-center gap-1">
               <span className="opacity-50">·</span>
               <IkonMata className="h-3 w-3" />
               {Number(data.views).toLocaleString("id-ID")} dilihat
+            </span>
+          )}
+          {/* Hanya dikirim untuk kartu trending. Inilah bahan skor yang paling
+              berbobot sekaligus paling sulit dimanipulasi — dan yang membuat
+              kartu di sini punya alasan berbeda dari kartu di feed. */}
+          {data.menitBaca > 0 && (
+            <span className="inline-flex shrink-0 items-center gap-1 font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-gray-400 opacity-50 dark:text-white/40">·</span>
+              {data.menitBaca < 1
+                ? "<1 mnt dibaca"
+                : `${Number(data.menitBaca).toLocaleString("id-ID")} mnt dibaca`}
             </span>
           )}
         </div>

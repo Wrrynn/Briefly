@@ -77,14 +77,24 @@ export async function GET() {
   const top = scored.slice(0, TOP_N);
   const sektorMap = await fetchSektorFor(top.map(({ e }) => e.id));
 
-  const data = top.map(({ e }) =>
-    transformCluster(
-      e.raw,
-      sektorMap[e.id] || [],
-      e.category,
-      Number(metrikMap[e.id]?.jumlah_klik) || 0,
-    ),
-  );
+  // `menitBaca` hanya disertakan di trending, bukan di feed. Lama baca adalah
+  // separuh bahan skor di atas (bobotnya bahkan lebih besar daripada klik,
+  // karena lebih sulit dimanipulasi) — tapi selama ini tidak pernah terlihat di
+  // mana pun, sehingga kartu trending tampak identik dengan kartu feed dan
+  // tidak menjelaskan kenapa ia ada di sana.
+  const data = top.map(({ e }) => {
+    const m = metrikMap[e.id];
+    const menitBaca = Math.round(((m?.total_durasi_ms || 0) / 60000) * 10) / 10;
+    return {
+      ...transformCluster(
+        e.raw,
+        sektorMap[e.id] || [],
+        e.category,
+        Number(m?.jumlah_klik) || 0,
+      ),
+      menitBaca,
+    };
+  });
 
   return NextResponse.json({ data });
 }
