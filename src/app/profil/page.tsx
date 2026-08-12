@@ -115,22 +115,50 @@ export default function ProfilPage() {
     }, []);
 
     // === MUAT ISI TAB SESUAI KEBUTUHAN ===
+    //
+    // `null` = belum pernah dimuat, `[]` = sudah dimuat dan memang kosong.
+    // Perbedaan itu yang dipakai sebagai penjaga agar satu tab hanya diminta
+    // sekali — dan dulu justru itu yang rusak, dengan dua sebab yang saling
+    // mengunci:
+    //
+    // 1. Ketiga daftar ikut jadi DEPENDENSI, padahal effect ini sendiri yang
+    //    menulisnya. Akibatnya setiap satu daftar selesai dimuat, effect
+    //    dijalankan ulang dan cleanup-nya MEMBATALKAN permintaan tab lain yang
+    //    masih berjalan.
+    // 2. `.catch` memperlakukan pembatalan sama seperti kegagalan asli, lalu
+    //    menyetel daftar menjadi `[]`. Permintaan yang dibatalkan bukan jawaban
+    //    "tidak ada data", tapi state terlanjur bukan null lagi — sehingga
+    //    penjaganya menutup pintu dan tab itu tidak pernah diminta lagi.
+    //
+    // Di mode pengembangan React sengaja menjalankan effect dua kali, jadi
+    // rantainya: fetch A → batal A → fetch B → A tertangkap sebagai [] →
+    // dependensi berubah → batal B → penjaga sudah bukan null → berhenti
+    // selamanya. Daftar tampak kosong sampai halaman dimuat ulang, dan karena
+    // ini balapan, kadang lolos — itulah kenapa gejalanya terasa acak.
     useEffect(() => {
         if (perluMigrasi) return;
         const ac = new AbortController();
         const opsi = { cache: "no-store" as const, signal: ac.signal };
 
+        // Pembatalan bukan kegagalan: biarkan state tetap `null` supaya tab itu
+        // diminta lagi saat dibuka berikutnya.
+        const dibatalkan = (e: unknown) => (e as { name?: string })?.name === "AbortError";
+
         if (tab === "Tersimpan" && tersimpan === null) {
             fetch("/api/profil/bookmark?kartu=1", opsi)
                 .then((r) => (r.ok ? r.json() : { data: [] }))
                 .then((j) => setTersimpan(j.data || []))
-                .catch(() => setTersimpan([]));
+                .catch((e) => {
+                    if (!dibatalkan(e)) setTersimpan([]);
+                });
         }
         if (tab === "Riwayat" && riwayat === null) {
             fetch("/api/profil/riwayat?kartu=1", opsi)
                 .then((r) => (r.ok ? r.json() : { data: [] }))
                 .then((j) => setRiwayat(j.data || []))
-                .catch(() => setRiwayat([]));
+                .catch((e) => {
+                    if (!dibatalkan(e)) setRiwayat([]);
+                });
         }
         if (tab === "Aktor" && aktorDiikuti === null) {
             fetch("/api/profil/aktor", opsi)
@@ -139,10 +167,16 @@ export default function ProfilPage() {
                     setAktorDiikuti(j.diikuti || []);
                     setAktorPopuler(j.populer || []);
                 })
-                .catch(() => setAktorDiikuti([]));
+                .catch((e) => {
+                    if (!dibatalkan(e)) setAktorDiikuti([]);
+                });
         }
         return () => ac.abort();
-    }, [tab, perluMigrasi, tersimpan, riwayat, aktorDiikuti]);
+        // Ketiga daftar sengaja TIDAK masuk dependensi — di sini perannya
+        // penjaga, bukan pemicu. Memasukkannya berarti setiap pemuatan yang
+        // berhasil membatalkan permintaan tab lain yang sedang berjalan.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, perluMigrasi]);
 
     const simpanPreferensi = useCallback(async (patch: Partial<Preferensi>) => {
         try {

@@ -22,18 +22,24 @@ async function muatIds(): Promise<Set<number>> {
     .then(async (r) => {
       if (r.status === 503) {
         // Tabel profil belum dibuat — sembunyikan fitur, jangan tampilkan error.
+        // Ini jawaban yang SAHIH (fiturnya memang belum tersedia), jadi boleh
+        // disimpan supaya tidak diminta berulang kali.
         migrasiBelumJalan = true;
-        return new Set<number>();
+        return { ids: new Set<number>(), sahih: true };
       }
-      if (!r.ok) return new Set<number>();
+      if (!r.ok) return { ids: new Set<number>(), sahih: false };
       const j = await r.json();
-      return new Set<number>((j.ids || []).map(Number));
+      return { ids: new Set<number>((j.ids || []).map(Number)), sahih: true };
     })
-    .catch(() => new Set<number>())
-    .then((s) => {
-      idsTersimpan = s;
+    .catch(() => ({ ids: new Set<number>(), sahih: false }))
+    .then(({ ids, sahih }) => {
+      // Hanya hasil sahih yang disimpan. Kegagalan jaringan bukan jawaban
+      // "tidak ada yang tersimpan" — kalau ikut di-cache, SELURUH tombol simpan
+      // tampak kosong sampai halaman dimuat ulang, dan permintaan berikutnya
+      // langsung dijawab dari cache palsu itu tanpa pernah mencoba lagi.
+      if (sahih) idsTersimpan = ids;
       beritahu();
-      return s;
+      return ids;
     })
     .finally(() => {
       inflight = null;
