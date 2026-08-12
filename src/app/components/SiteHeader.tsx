@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
+import LogoBriefly from "@/app/components/LogoBriefly";
 import UserMenu from "@/app/components/UserMenu";
 import TombolTema from "@/app/components/TombolTema";
 
@@ -203,17 +203,12 @@ export default function SiteHeader({
                     href="/"
                     className="group flex shrink-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-[#05051a]"
                 >
-                    <Image
-                        src="/images/Briefly-logo.png"
-                        alt="Logo Briefly"
-                        width={32}
-                        height={32}
-                        priority
-                        className="h-8 w-8 rounded-lg shadow-sm ring-1 ring-black/5 transition-transform group-hover:scale-105 dark:ring-white/10"
+                    {/* Wordmark saja — ikon dan tulisan "BRIEFLY" dilepas karena
+                        wordmark sudah memuat nama mereknya sendiri. */}
+                    <LogoBriefly
+                        prioritas
+                        className="h-8 w-auto transition-transform group-hover:scale-105"
                     />
-                    <span className="hidden text-[11px] font-black uppercase tracking-[0.3em] text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 sm:inline">
-                        Briefly
-                    </span>
                 </Link>
 
                 {/* Pencarian versi layar lebar */}

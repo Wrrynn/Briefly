@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import NewsCard from "@/app/components/NewsCard";
 import KerangkaKartu from "@/app/components/KerangkaKartu";
+import LogoBriefly from "@/app/components/LogoBriefly";
 import Footer from "@/app/components/Footer";
 import { temaGelapAktif, terapkanTema } from "@/lib/tema";
 
@@ -233,18 +233,11 @@ export default function ProfilPage() {
             {/* NAVBAR */}
             <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-[#05051a]/80 backdrop-blur-2xl">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-                    <Link href="/" className="group flex items-center gap-3">
-                        <Image
-                            src="/images/Briefly-logo.png"
-                            alt="Logo Briefly"
-                            width={32}
-                            height={32}
-                            priority
-                            className="h-8 w-8 rounded-lg ring-1 ring-black/5 dark:ring-white/10"
+                    <Link href="/" className="group flex items-center">
+                        <LogoBriefly
+                            prioritas
+                            className="h-8 w-auto transition-transform group-hover:scale-105"
                         />
-                        <span className="text-[11px] font-black tracking-[0.4em] uppercase group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                            Briefly
-                        </span>
                     </Link>
                     <Link
                         href="/"
