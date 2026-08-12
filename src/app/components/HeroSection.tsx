@@ -44,26 +44,34 @@ export default function HeroSection({ trendingNews, loadingTrending, searchActiv
         <div className="w-full">
             <div className="relative w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500 flex flex-col font-sans">
 
-                {/* HERO CONTENT */}
-                <div className="px-5 sm:px-8 w-full max-w-7xl mx-auto">
-                    {/* Hero sengaja TIDAK setinggi layar. Sebelumnya memakai
-                        min-h-[calc(100svh-96px)], sehingga layar pertama hanya berisi
-                        judul + kotak cari dengan ratusan piksel kosong — tidak ada satu
-                        pun berita yang terlihat sebelum pengguna menggulir. */}
-                    <div className="flex flex-col items-center pt-10 pb-12 sm:pt-14 sm:pb-16">
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center w-full max-w-4xl">
-                            <div className="mb-6">
-                                <span className="inline-block py-2 px-5 rounded-full bg-blue-600/10 dark:bg-blue-500/15 ring-1 ring-blue-600/15 dark:ring-blue-400/25 text-blue-700 dark:text-blue-300 text-[10px] font-black tracking-[0.3em] uppercase">
-                                    AI Intelligence Platform
-                                </span>
-                            </div>
+                {/* JUDUL HALAMAN
+                    Dulu di sini berdiri billboard promosi: lencana "AI Intelligence
+                    Platform" dan judul 60px "ANALISIS INDONESIA DALAM PERSPEKTIF AI",
+                    rata tengah, dengan padding tebal — sekitar 340px di desktop dan
+                    240px di ponsel sebelum satu berita pun terlihat.
 
-                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-[1.08] tracking-tight text-gray-900 dark:text-white">
-                                ANALISIS INDONESIA <br />
-                                <span className="text-blue-600 dark:text-blue-400 italic">DALAM PERSPEKTIF AI</span>
-                            </h1>
-                        </motion.div>
-                    </div>
+                    Materi itu memang berguna, tapi untuk MEYAKINKAN ORANG MENDAFTAR,
+                    dan Landing.tsx sudah menanganinya untuk pengunjung yang belum
+                    punya akun. Halaman ini hanya dilihat pengguna yang sudah login —
+                    mereka membayar satu gulir penuh untuk membaca slogan yang sama
+                    setiap hari.
+
+                    Sekarang: judul halaman ringkas dan rata kiri, sejajar dengan
+                    filter dan daftar berita di bawahnya. */}
+                <div className="px-5 sm:px-8 w-full max-w-7xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="pt-8 pb-8 sm:pt-10 sm:pb-10"
+                    >
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Analisis Berita
+                        </h1>
+                        <p className="mt-1.5 max-w-2xl text-sm text-gray-500 dark:text-white/45">
+                            Ringkasan, sentimen aktor, dan prediksi dampak sektoral —
+                            disusun dari banyak portal untuk satu peristiwa yang sama.
+                        </p>
+                    </motion.div>
 
                     {!searchActive && (
                         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="w-full pb-8 lg:pb-10">
