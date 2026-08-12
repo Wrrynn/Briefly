@@ -68,7 +68,7 @@ export default function HeroSection({ trendingNews, loadingTrending, searchActiv
                             Analisis Berita
                         </h1>
                         <p className="mt-1.5 max-w-2xl text-sm text-gray-500 dark:text-white/45">
-                            Ringkasan, sentimen aktor, dan prediksi dampak sektoral —
+                            Ringkasan, sentimen aktor, dan prediksi dampak sektoral
                             disusun dari banyak portal untuk satu peristiwa yang sama.
                         </p>
                     </motion.div>
