@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +9,9 @@ import TombolTema from "@/app/components/TombolTema";
 
 interface SiteHeaderProps {
     setQuery: (val: string) => void;
+    /** Kata kunci awal dari alamat, supaya kotak cari tidak tampil kosong
+     *  padahal daftarnya sedang tersaring. */
+    queryAwal?: string;
     searchActive?: boolean;
     sentimentFilter?: string;
     setSentimentFilter?: (val: string) => void;
@@ -41,16 +44,43 @@ const PIL_SENTIMEN: { label: string; aktif: string; pasif: string }[] = [
  */
 export default function SiteHeader({
     setQuery,
+    queryAwal = "",
     searchActive,
     sentimentFilter,
     setSentimentFilter,
 }: SiteHeaderProps) {
-    const [input, setInput] = useState("");
+    const [input, setInput] = useState(queryAwal);
     // Popup bisa ditutup dengan Esc tanpa menghapus kata kuncinya. Dibuka lagi
     // begitu pengguna mengetik — mengetik ulang berarti ia sedang menyaring lagi.
     const [popupDitutup, setPopupDitutup] = useState(false);
+    const [sembunyikanBarisCari, setSembunyikanBarisCari] = useState(false);
 
     const popupTerbuka = input.trim() !== "" && !popupDitutup && Boolean(setSentimentFilter);
+
+    // Di ponsel header memakan dua baris: logo (64px) + kotak cari (~46px) —
+    // sekitar 17% layar, tertahan permanen bahkan saat membaca artikel panjang
+    // ketika kotak cari sama sekali tidak dibutuhkan. Baris cari kini menghilang
+    // saat menggulir turun dan kembali saat menggulir naik, jadi ia tetap
+    // sedekat satu gerakan tanpa terus memakan ruang.
+    useEffect(() => {
+        let terakhir = window.scrollY;
+
+        const saatGulir = () => {
+            const y = window.scrollY;
+            // Ambang 8px meredam getaran kecil yang membuat baris berkedip.
+            if (Math.abs(y - terakhir) < 8) return;
+            // Di dekat puncak halaman kotak cari selalu ditampilkan.
+            setSembunyikanBarisCari(y > terakhir && y > 120);
+            terakhir = y;
+        };
+
+        window.addEventListener("scroll", saatGulir, { passive: true });
+        return () => window.removeEventListener("scroll", saatGulir);
+    }, []);
+
+    // Menyembunyikan baris cari saat popup sentimennya terbuka akan menyeret
+    // popup itu ikut hilang di tengah interaksi.
+    const barisCariTersembunyi = sembunyikanBarisCari && !popupTerbuka;
 
     const submitSearch = () => {
         setQuery(input.trim());
@@ -195,8 +225,17 @@ export default function SiteHeader({
                 </div>
             </div>
 
-            {/* Pencarian versi layar sempit — satu baris penuh di bawah logo */}
-            <div className="px-5 pb-3 md:hidden">{kotakCari}</div>
+            {/* Pencarian versi layar sempit — satu baris penuh di bawah logo.
+                `invisible` saat tersembunyi, bukan sekadar tinggi nol: elemen
+                setinggi nol masih bisa difokus keyboard, dan fokus yang melompat
+                ke kotak tak terlihat membingungkan. */}
+            <div
+                className={`overflow-hidden px-5 transition-all duration-300 md:hidden ${
+                    barisCariTersembunyi ? "invisible max-h-0 pb-0 opacity-0" : "max-h-24 pb-3 opacity-100"
+                }`}
+            >
+                {kotakCari}
+            </div>
 
         </header>
     );

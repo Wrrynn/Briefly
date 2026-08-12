@@ -28,7 +28,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#05051a]">
       <Aurora />
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-10">
+      {/* Sasaran tautan lompat di layout. */}
+      <div
+        id="isi-utama"
+        tabIndex={-1}
+        className="relative z-10 flex flex-1 items-center justify-center px-4 py-10 outline-none"
+      >
         <div className="w-full max-w-md">{children}</div>
       </div>
       {/* Footer wajib di semua halaman (login & register) */}

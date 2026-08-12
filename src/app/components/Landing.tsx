@@ -71,8 +71,8 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ===== HERO ===== */}
-      <section className="relative overflow-hidden">
+      {/* ===== HERO ===== sekaligus sasaran tautan lompat di layout. */}
+      <section id="isi-utama" tabIndex={-1} className="relative overflow-hidden outline-none">
         <Aurora />
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-2 lg:pt-16">
           <motion.div initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.12 } } }}>

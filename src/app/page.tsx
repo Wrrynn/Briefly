@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import NewsHome from "@/app/components/NewsHome";
 import Landing from "@/app/components/Landing";
@@ -11,5 +12,15 @@ export default async function RootPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return user ? <NewsHome /> : <Landing />;
+  if (!user) return <Landing />;
+
+  // NewsHome membaca filter dari alamat lewat useSearchParams, dan Next
+  // mewajibkan komponen semacam itu berada di dalam batas Suspense.
+  // Fallback-nya diberi warna latar halaman, bukan kosong, supaya tidak ada
+  // kedipan putih bila render sempat tertunda.
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-[#05051a]" />}>
+      <NewsHome />
+    </Suspense>
+  );
 }

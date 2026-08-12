@@ -41,6 +41,12 @@ export default function NewsDetailPage() {
     const [loading, setLoading] = useState(true);
     const [news, setNews] = useState<EnrichedNews | null>(null);
     const [notFound, setNotFound] = useState(false);
+    // Dibedakan dari notFound: koneksi putus atau server sibuk BUKAN berarti
+    // beritanya tidak ada. Dulu keduanya dijadikan satu, sehingga gangguan
+    // jaringan sesaat memberi tahu pembaca bahwa beritanya memang tidak ada —
+    // menyesatkan, dan tanpa jalan keluar selain menebak untuk memuat ulang.
+    const [galat, setGalat] = useState<string | null>(null);
+    const [muatUlang, setMuatUlang] = useState(0);
     const [relatedNews, setRelatedNews] = useState<EnrichedNews[]>([]);
 
     // Tema diurus terpusat: class `dark` dipasang SKRIP_TEMA di layout sebelum
@@ -57,6 +63,7 @@ export default function NewsDetailPage() {
         }
 
         setLoading(true); // Reset loading state jika ID berubah
+        setGalat(null);
         fetch(`/api/analyze-news/berita/${newsId}`)
             .then((res) => {
                 // Sesi habis di tengah jalan → arahkan ke login, jangan tampil
@@ -65,11 +72,17 @@ export default function NewsDetailPage() {
                     window.location.href = "/login?expired=1";
                     return null;
                 }
-                if (!res.ok) throw new Error("not found");
+                // Hanya 404 yang benar-benar berarti "beritanya tidak ada".
+                // Status lain (5xx, 503) adalah gangguan di sisi server.
+                if (res.status === 404) {
+                    setNotFound(true);
+                    return null;
+                }
+                if (!res.ok) throw new Error(`Server membalas ${res.status}`);
                 return res.json();
             })
             .then((json) => {
-                if (!json) return; // sedang redirect ke /login
+                if (!json) return; // sedang redirect ke /login, atau 404
                 if (json.data) {
                     setNews({ ...json.data, aiLoading: false });
                     setNotFound(false);
@@ -77,9 +90,11 @@ export default function NewsDetailPage() {
                     setNotFound(true);
                 }
             })
-            .catch(() => setNotFound(true))
+            .catch((e) => {
+                setGalat(e instanceof Error ? e.message : "Gagal memuat berita.");
+            })
             .finally(() => setLoading(false));
-    }, [newsId]); // Dependensi menggunakan variabel string yang stabil
+    }, [newsId, muatUlang]); // muatUlang dinaikkan tombol "Coba lagi"
 
     // === FETCH BERITA RELATED ===
     useEffect(() => {
@@ -182,6 +197,47 @@ export default function NewsDetailPage() {
         };
     }, [trackedId]);
 
+    // === GALAT MUAT (bukan 404) ===
+    // Tampilannya sengaja beda dari 404: pesannya jujur bahwa masalahnya di
+    // pemuatan, dan ada tombol coba lagi — 404 tidak punya itu karena mencoba
+    // ulang berita yang memang tidak ada tidak akan pernah berhasil.
+    if (!loading && galat) {
+        return (
+            <main className="relative flex min-h-screen w-full items-center justify-center bg-gray-50 transition-colors duration-500 dark:bg-[#05051a]">
+                <div className="relative z-10 px-4 text-center">
+                    <p className="mb-4 select-none text-[80px] font-black leading-none text-gray-200 dark:text-white/[0.04]">
+                        !
+                    </p>
+                    <h1 className="mb-3 text-2xl font-bold text-gray-900 dark:text-white">
+                        Gagal Memuat Berita
+                    </h1>
+                    <p className="mx-auto mb-2 max-w-sm text-sm font-medium text-gray-500 dark:text-white/40">
+                        Beritanya kemungkinan besar ada — yang bermasalah adalah
+                        pemuatannya. Coba lagi sebentar lagi.
+                    </p>
+                    <p className="mx-auto mb-8 max-w-sm font-mono text-[11px] text-gray-400 dark:text-white/25">
+                        {galat}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setMuatUlang((n) => n + 1)}
+                            className="rounded-xl bg-gray-900 px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none transition-all duration-300 hover:bg-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:bg-white dark:text-black dark:hover:bg-blue-600 dark:hover:text-white dark:focus-visible:ring-offset-[#05051a]"
+                        >
+                            Coba Lagi
+                        </button>
+                        <Link
+                            href="/"
+                            className="rounded-xl border border-gray-300 px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-gray-600 transition-all duration-300 hover:border-gray-400 hover:text-gray-900 dark:border-white/10 dark:text-white/50 dark:hover:border-white/25 dark:hover:text-white"
+                        >
+                            Ke Beranda
+                        </Link>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
     // === 404 RENDER ===
     if (!loading && notFound) {
         return (
@@ -246,8 +302,12 @@ export default function NewsDetailPage() {
                 </div>
             </nav>
 
-            {/* CONTENT */}
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+            {/* CONTENT — sekaligus sasaran tautan lompat di layout. */}
+            <div
+                id="isi-utama"
+                tabIndex={-1}
+                className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 scroll-mt-20 outline-none"
+            >
                 <LayoutGroup>
                 <AnimatePresence mode="wait">
                     {loading ? (
