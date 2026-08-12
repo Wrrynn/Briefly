@@ -302,8 +302,12 @@ export default function NewsDetailPage() {
                 </div>
             </nav>
 
-            {/* CONTENT */}
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+            {/* CONTENT — sekaligus sasaran tautan lompat di layout. */}
+            <div
+                id="isi-utama"
+                tabIndex={-1}
+                className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 scroll-mt-20 outline-none"
+            >
                 <LayoutGroup>
                 <AnimatePresence mode="wait">
                     {loading ? (

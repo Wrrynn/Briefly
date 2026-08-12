@@ -255,7 +255,12 @@ export default function ProfilPage() {
                 </div>
             </nav>
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+            {/* Sasaran tautan lompat di layout. */}
+            <div
+                id="isi-utama"
+                tabIndex={-1}
+                className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14 scroll-mt-20 outline-none"
+            >
                 {memuat ? (
                     // Meniru susunan halaman aslinya: identitas (avatar + nama),
                     // tiga kotak statistik, lalu deretan tab. Versi lama hanya dua

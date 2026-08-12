@@ -264,12 +264,18 @@ export default function NewsHome() {
                     setSentimentFilter={setSentimentFilter}
                 />
 
-                <HeroSection
-                    trendingNews={trendingNews}
-                    loadingTrending={loadingTrending}
-                    searchActive={query.trim() !== ""}
-                    tanggalData={meta?.latestDate ?? null}
-                />
+                {/* Sasaran tautan lompat: tepat setelah header, sehingga pengguna
+                    keyboard mendarat di isi halaman tanpa menyusuri seluruh kendali
+                    di header. tabIndex -1 membuatnya bisa menerima fokus terprogram
+                    tanpa masuk urutan Tab biasa. */}
+                <div id="isi-utama" tabIndex={-1} className="scroll-mt-20 outline-none">
+                    <HeroSection
+                        trendingNews={trendingNews}
+                        loadingTrending={loadingTrending}
+                        searchActive={query.trim() !== ""}
+                        tanggalData={meta?.latestDate ?? null}
+                    />
+                </div>
 
                 {/* scroll-mt menjaga judul daftar tidak tertutup header sticky
                     saat scrollIntoView dipanggil dari pencarian/paginasi. */}

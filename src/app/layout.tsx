@@ -61,6 +61,19 @@ export default function RootLayout({
                     class `dark` sudah menempel di <html> dan bertahan lintas
                     navigasi. Yang dibutuhkan hanya eksekusi saat dokumen dimuat. */}
                 <script dangerouslySetInnerHTML={{ __html: SKRIP_TEMA }} />
+
+                {/* Tautan lompat — hanya muncul saat difokus keyboard.
+                    Tanpa ini, pengguna keyboard dan pembaca layar harus menyusuri
+                    logo, kotak cari, tombol tema, avatar, dan tombol keluar sebelum
+                    mencapai berita pertama, DI SETIAP HALAMAN. Sasarannya
+                    #isi-utama, yang dipasang tepat setelah header di tiap halaman. */}
+                <a
+                    href="#isi-utama"
+                    className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-gray-900 focus:px-5 focus:py-3 focus:text-[11px] focus:font-black focus:uppercase focus:tracking-[0.2em] focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:bg-white dark:focus:text-gray-900"
+                >
+                    Langsung ke isi
+                </a>
+
                 {children}
             </body>
         </html>
