@@ -38,11 +38,7 @@ function labelWaktu(data: any): string {
 
 const MAKS_PORTAL = 2; // dijaga tetap satu baris agar tinggi kartu rata
 
-// `besar` dipakai untuk sorotan utama di daftar trending. Sengaja berupa varian
-// dari kartu yang sama, bukan komponen terpisah: isinya identik dan hanya
-// ukurannya yang berbeda, jadi dua salinan hanya akan saling ketinggalan zaman
-// setiap kali kartunya diubah.
-export default function NewsCard({ data, besar = false }: any) {
+export default function NewsCard({ data }: any) {
   const idKlaster = data.id == null ? null : Number(data.id);
   const sentiment = getCardSentiment(data.sentiments);
   const portals: string[] = data.portals || [];
@@ -63,21 +59,15 @@ export default function NewsCard({ data, besar = false }: any) {
         className="absolute inset-0 z-10 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       />
 
-      {/* Lebar tayang berbeda antar varian, jadi `sizes` ikut berbeda — kalau
-          disamakan, kartu sorotan akan meminta gambar yang terlalu kecil lalu
-          tampak buram saat diperbesar. */}
+      {/* Kartu: 1 kolom di ponsel, 2 di tablet, 3 di layar lebar (maks 1280px),
+          jadi lebar tayangnya sekitar 400px. */}
       <GambarBerita
         idKlaster={idKlaster}
-        sizes={
-          besar
-            ? "(max-width: 1024px) 100vw, 760px"
-            : "(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
-        }
+        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 400px"
         className="aspect-[16/9] w-full rounded-t-2xl"
-        priority={besar}
       />
 
-      <div className={`flex flex-col flex-1 ${besar ? "p-6 sm:p-8" : "p-6"}`}>
+      <div className="flex flex-col flex-1 p-6">
         {/* Kategori + sentimen + simpan */}
         <div className="flex justify-between items-center gap-2 mb-3">
           <span className="bg-gray-900 dark:bg-white text-white dark:text-black font-black text-[10px] px-3 py-1.5 rounded-md uppercase tracking-[0.2em]">
@@ -98,22 +88,11 @@ export default function NewsCard({ data, besar = false }: any) {
         </div>
 
         {/* JUDUL — elemen paling menonjol di kartu. */}
-        <h2
-          className={`font-extrabold text-gray-900 dark:text-white leading-snug mb-2.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 line-clamp-3 ${
-            besar ? "text-2xl sm:text-[28px] sm:leading-[1.2]" : "text-[19px]"
-          }`}
-        >
+        <h2 className="text-[19px] font-extrabold text-gray-900 dark:text-white leading-snug mb-2.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 line-clamp-3">
           {data.title}
         </h2>
 
-        {/* Ruang di kartu sorotan jauh lebih lega, jadi ringkasannya boleh
-            lebih panjang — di kartu kecil tetap dua baris agar tinggi kartu
-            dalam satu baris grid tetap rata. */}
-        <p
-          className={`text-gray-600 dark:text-white/55 mb-4 leading-relaxed ${
-            besar ? "text-[15px] line-clamp-4" : "text-sm line-clamp-2"
-          }`}
-        >
+        <p className="text-sm text-gray-600 dark:text-white/55 line-clamp-2 mb-4 leading-relaxed">
           {data.description}
         </p>
 

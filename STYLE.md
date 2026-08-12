@@ -283,12 +283,6 @@ keadaan: memuat (`animate-pulse`), ada gambar (`object-cover` +
 kosong, supaya tinggi kartu dalam satu baris tetap rata). Gambarnya `og:image`
 hasil scraping halaman sumber, lihat [gambar.ts](src/lib/gambar.ts).
 
-**Varian `besar`** untuk sorotan trending: padding `p-6 sm:p-8`, judul
-`text-2xl sm:text-[28px]`, ringkasan `line-clamp-4`, dan `sizes` gambar yang
-lebih lebar (760px). Satu komponen dengan satu flag — bukan komponen kedua,
-karena isinya identik dan salinan hanya akan saling ketinggalan zaman.
-`KerangkaKartu` punya flag `besar` yang sama agar tata letak tidak melompat.
-
 Dua jalur render, dipilih dengan `bolehDioptimasi()` dari
 [host-gambar.mjs](src/lib/host-gambar.mjs):
 

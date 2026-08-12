@@ -16,12 +16,6 @@ interface HeroProps {
 // pencarian tidak lagi di sini — keduanya kini ada di SiteHeader yang menempel
 // di atas layar sepanjang halaman.
 export default function HeroSection({ trendingNews, loadingTrending, searchActive, tanggalData }: HeroProps) {
-    const daftarTrending = trendingNews || [];
-    const sorotan = daftarTrending[0];
-    const pendamping = daftarTrending.slice(1, 3);
-    // Tanpa pendamping, grid dua kolom hanya menyisakan lubang di kanan.
-    const kelasGrid = `grid gap-6${pendamping.length ? " lg:grid-cols-[1.6fr_1fr]" : ""}`;
-
     return (
         <div className="w-full">
             <div className="relative w-full bg-gray-50 dark:bg-[#05051a] text-gray-900 dark:text-white transition-colors duration-500 flex flex-col font-sans">
@@ -63,38 +57,19 @@ export default function HeroSection({ trendingNews, loadingTrending, searchActiv
                                 <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/5"></div>
                             </div>
 
-                            {/* Peringkat 1 disorot besar, sisanya kecil di sampingnya.
-                                Sebelumnya ketiganya berukuran sama, sehingga urutan
-                                "paling ramai" tidak terbaca sama sekali — pembaca
-                                harus menebak mana yang teratas.
-
-                                Di ponsel semuanya menumpuk satu kolom; di tablet dua
-                                kartu kecil berdampingan; baru di layar lebar sorotan
-                                pindah ke kiri dengan dua kartu kecil menumpuk di kanan. */}
-                            {loadingTrending ? (
-                                <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-                                    <KerangkaKartu besar />
-                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
-                                        <KerangkaKartu />
-                                        <KerangkaKartu />
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {loadingTrending ? (
+                                    [1, 2, 3].map((i) => <KerangkaKartu key={i} />)
+                                ) : (trendingNews || []).length > 0 ? (
+                                    (trendingNews || []).slice(0, 3).map((item, index) => (
+                                        <NewsCard key={item.id || index} data={item} />
+                                    ))
+                                ) : (
+                                    <div className="col-span-3 text-center py-8 text-gray-400 dark:text-white/30 text-sm tracking-widest uppercase font-bold">
+                                        Belum ada data trending
                                     </div>
-                                </div>
-                            ) : sorotan ? (
-                                <div className={kelasGrid}>
-                                    <NewsCard data={sorotan} besar />
-                                    {pendamping.length > 0 && (
-                                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
-                                            {pendamping.map((item, index) => (
-                                                <NewsCard key={item.id || index} data={item} />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-400 dark:text-white/30 text-sm tracking-widest uppercase font-bold">
-                                    Belum ada data trending
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </motion.div>
                     )}
                 </div>
