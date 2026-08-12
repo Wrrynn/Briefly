@@ -587,7 +587,7 @@ function getPublisherName(url: string): string {
 export function buildSources(
   members: any[],
   clusterTitle: string,
-): { portal: string; url: string; title: string }[] {
+): { portal: string; url: string; title: string; waktu: string | null }[] {
   const tokenize = (t: string) =>
     new Set(
       (t || "")
@@ -612,10 +612,13 @@ export function buildSources(
       portal: m.portal_sumber || getPublisherName(m.url_asli),
       url: m.url_asli,
       title: m.judul || "",
+      // Dipakai linimasa di halaman detail. created_at sebagai cadangan bila
+      // portal tidak mencantumkan waktu terbit di halamannya.
+      waktu: m.waktu_rilis || m.created_at || null,
       score: relevance(m.judul || ""),
     }))
     .sort((a, b) => b.score - a.score)
-    .map(({ portal, url, title }) => ({ portal, url, title }));
+    .map(({ portal, url, title, waktu }) => ({ portal, url, title, waktu }));
 }
 
 // Transform satu baris KLASTER (hasil summarize) menjadi bentuk untuk frontend.

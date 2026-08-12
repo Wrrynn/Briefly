@@ -11,6 +11,7 @@ import NewsContent from "@/app/components/detail/NewsContent";
 import LoadingSkeleton, {
     SidebarSkeleton,
 } from "@/app/components/detail/LoadingSkeleton";
+import Linimasa from "@/app/components/detail/Linimasa";
 import FramingComparison from "@/app/components/detail/FramingComparison";
 import BookmarkButton from "@/app/components/BookmarkButton";
 import GambarBerita from "@/app/components/GambarBerita";
@@ -25,7 +26,7 @@ type EnrichedNews = NewsItem & {
     aiError?: boolean; 
     url?: string; 
     isAnalyzed?: boolean;
-    sources?: Array<{ portal: string; url: string; title?: string }>;
+    sources?: Array<{ portal: string; url: string; title?: string; waktu?: string | null }>;
     sentiments?: Array<{ type: string; aktor?: string; percentage?: number; description: string }>;
     sektorPredictions?: Array<{ nama_sektor: string; tingkat_risiko: string; prediksi_dampak: string; objek_terdampak?: string | null; sentimen_objek?: string | null; persentase_objek?: number | null }>;
 };
@@ -292,6 +293,11 @@ export default function NewsDetailPage() {
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
+
+                {/* LINIMASA PELIPUTAN — fakta urutan waktu, tanpa AI. Sengaja
+                    mendahului perbandingan framing: pembaca melihat dulu APA yang
+                    terjadi dan kapan, baru BAGAIMANA tiap portal membingkainya. */}
+                {!loading && news && <Linimasa sources={news.sources} />}
 
                 {/* PERBANDINGAN FRAMING ANTAR PORTAL */}
                 {!loading && news && <FramingComparison newsId={news.id} />}

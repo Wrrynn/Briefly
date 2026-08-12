@@ -46,6 +46,11 @@ export default function SiteHeader({
     setSentimentFilter,
 }: SiteHeaderProps) {
     const [input, setInput] = useState("");
+    // Popup bisa ditutup dengan Esc tanpa menghapus kata kuncinya. Dibuka lagi
+    // begitu pengguna mengetik — mengetik ulang berarti ia sedang menyaring lagi.
+    const [popupDitutup, setPopupDitutup] = useState(false);
+
+    const popupTerbuka = input.trim() !== "" && !popupDitutup && Boolean(setSentimentFilter);
 
     const submitSearch = () => {
         setQuery(input.trim());
@@ -57,6 +62,7 @@ export default function SiteHeader({
     const clearSearch = () => {
         setInput("");
         setQuery("");
+        setPopupDitutup(false);
         if (setSentimentFilter) setSentimentFilter("Semua");
     };
 
@@ -70,41 +76,93 @@ export default function SiteHeader({
     // sebagai baris tersendiri di layar sempit. Keduanya dikendalikan satu state
     // yang sama, jadi isinya selalu sinkron.
     const kotakCari = (
-        <div className="group flex items-center rounded-full border border-gray-200 bg-white py-1 pl-4 pr-1 shadow-sm transition-all duration-300 hover:border-blue-400 focus-within:border-blue-600 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-blue-500/50 dark:focus-within:border-blue-500">
-            <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter") submitSearch();
-                }}
-                placeholder="Cari analisis berita"
-                aria-label="Cari analisis berita"
-                // outline-none di sini disengaja dan sudah ada penggantinya:
-                // wadahnya memakai focus-within:border-blue-600, jadi fokus
-                // tetap terlihat sebagai bingkai di seluruh kotak cari.
-                className="w-full min-w-0 border-none bg-transparent py-2 text-sm font-semibold text-gray-900 outline-none placeholder-gray-400 dark:text-white dark:placeholder-white/40"
-            />
-            {searchActive && (
+        // `relative` menjadikan kotak cari jangkar bagi popup sentimen di
+        // bawahnya. Karena popup ikut di dalam blok ini, ia otomatis menempel
+        // pada kotak cari yang sedang tampil — versi lebar maupun sempit.
+        <div className="relative">
+            <div className="group flex items-center rounded-full border border-gray-200 bg-white py-1 pl-4 pr-1 shadow-sm transition-all duration-300 hover:border-blue-400 focus-within:border-blue-600 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-blue-500/50 dark:focus-within:border-blue-500">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => {
+                        setInput(e.target.value);
+                        setPopupDitutup(false);
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") submitSearch();
+                        // Esc menutup popup lebih dulu; kata kunci dibiarkan utuh
+                        // supaya pengguna tidak kehilangan ketikannya.
+                        if (e.key === "Escape" && popupTerbuka) {
+                            e.preventDefault();
+                            setPopupDitutup(true);
+                        }
+                    }}
+                    placeholder="Cari analisis berita"
+                    aria-label="Cari analisis berita"
+                    // outline-none di sini disengaja dan sudah ada penggantinya:
+                    // wadahnya memakai focus-within:border-blue-600, jadi fokus
+                    // tetap terlihat sebagai bingkai di seluruh kotak cari.
+                    className="w-full min-w-0 border-none bg-transparent py-2 text-sm font-semibold text-gray-900 outline-none placeholder-gray-400 dark:text-white dark:placeholder-white/40"
+                />
+                {searchActive && (
+                    <button
+                        onClick={clearSearch}
+                        aria-label="Bersihkan pencarian"
+                        className="mr-1 shrink-0 rounded-full p-1.5 text-gray-400 transition-all active:scale-90 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-white"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
                 <button
-                    onClick={clearSearch}
-                    aria-label="Bersihkan pencarian"
-                    className="mr-1 shrink-0 rounded-full p-1.5 text-gray-400 transition-all active:scale-90 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-white"
+                    onClick={submitSearch}
+                    aria-label="Cari"
+                    className="shrink-0 rounded-full bg-blue-600 p-2.5 text-white transition-all duration-300 active:scale-95 group-hover:bg-blue-700 group-hover:shadow-lg group-hover:shadow-blue-500/40"
                 >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
                     </svg>
                 </button>
-            )}
-            <button
-                onClick={submitSearch}
-                aria-label="Cari"
-                className="shrink-0 rounded-full bg-blue-600 p-2.5 text-white transition-all duration-300 active:scale-95 group-hover:bg-blue-700 group-hover:shadow-lg group-hover:shadow-blue-500/40"
-            >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
-                </svg>
-            </button>
+            </div>
+
+            {/* Popup saringan sentimen — mengambang di atas isi halaman, bukan
+                mendorongnya turun. Versi lama menyisipkan pil ini sebagai baris
+                tambahan di dalam header, sehingga tinggi header berubah setiap
+                kali pengguna mulai mengetik dan seluruh halaman ikut bergeser. */}
+            <AnimatePresence initial={false}>
+                {popupTerbuka && (
+                    <motion.div
+                        key="popup-sentimen"
+                        initial={{ opacity: 0, y: -6, scale: 0.985 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.985 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        role="group"
+                        aria-label="Saring hasil pencarian menurut sentimen"
+                        className="absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xl shadow-gray-300/40 dark:border-white/10 dark:bg-[#0c0c20] dark:shadow-black/50"
+                    >
+                        <p className="mb-2.5 px-1 text-[10px] font-black uppercase tracking-[0.25em] text-gray-400 dark:text-white/40">
+                            Sentimen
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {PIL_SENTIMEN.map((p) => (
+                                <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => handleSentimentClick(p.label)}
+                                    aria-pressed={sentimentFilter === p.label}
+                                    className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] outline-none transition-all duration-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c20] ${
+                                        sentimentFilter === p.label ? p.aktif : p.pasif
+                                    }`}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 
@@ -140,37 +198,6 @@ export default function SiteHeader({
             {/* Pencarian versi layar sempit — satu baris penuh di bawah logo */}
             <div className="px-5 pb-3 md:hidden">{kotakCari}</div>
 
-            {/* Pil sentimen cepat, muncul saat mengetik */}
-            <AnimatePresence initial={false}>
-                {input.trim() !== "" && setSentimentFilter && (
-                    <motion.div
-                        key="pil-sentimen"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        className="overflow-hidden"
-                    >
-                        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-center gap-2 px-5 pb-3 sm:px-8">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 dark:text-white/40">
-                                Sentimen:
-                            </span>
-                            {PIL_SENTIMEN.map((p) => (
-                                <button
-                                    key={p.label}
-                                    onClick={() => handleSentimentClick(p.label)}
-                                    aria-pressed={sentimentFilter === p.label}
-                                    className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                                        sentimentFilter === p.label ? p.aktif : p.pasif
-                                    }`}
-                                >
-                                    {p.label}
-                                </button>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </header>
     );
 }

@@ -115,22 +115,50 @@ export default function ProfilPage() {
     }, []);
 
     // === MUAT ISI TAB SESUAI KEBUTUHAN ===
+    //
+    // `null` = belum pernah dimuat, `[]` = sudah dimuat dan memang kosong.
+    // Perbedaan itu yang dipakai sebagai penjaga agar satu tab hanya diminta
+    // sekali — dan dulu justru itu yang rusak, dengan dua sebab yang saling
+    // mengunci:
+    //
+    // 1. Ketiga daftar ikut jadi DEPENDENSI, padahal effect ini sendiri yang
+    //    menulisnya. Akibatnya setiap satu daftar selesai dimuat, effect
+    //    dijalankan ulang dan cleanup-nya MEMBATALKAN permintaan tab lain yang
+    //    masih berjalan.
+    // 2. `.catch` memperlakukan pembatalan sama seperti kegagalan asli, lalu
+    //    menyetel daftar menjadi `[]`. Permintaan yang dibatalkan bukan jawaban
+    //    "tidak ada data", tapi state terlanjur bukan null lagi — sehingga
+    //    penjaganya menutup pintu dan tab itu tidak pernah diminta lagi.
+    //
+    // Di mode pengembangan React sengaja menjalankan effect dua kali, jadi
+    // rantainya: fetch A → batal A → fetch B → A tertangkap sebagai [] →
+    // dependensi berubah → batal B → penjaga sudah bukan null → berhenti
+    // selamanya. Daftar tampak kosong sampai halaman dimuat ulang, dan karena
+    // ini balapan, kadang lolos — itulah kenapa gejalanya terasa acak.
     useEffect(() => {
         if (perluMigrasi) return;
         const ac = new AbortController();
         const opsi = { cache: "no-store" as const, signal: ac.signal };
 
+        // Pembatalan bukan kegagalan: biarkan state tetap `null` supaya tab itu
+        // diminta lagi saat dibuka berikutnya.
+        const dibatalkan = (e: unknown) => (e as { name?: string })?.name === "AbortError";
+
         if (tab === "Tersimpan" && tersimpan === null) {
             fetch("/api/profil/bookmark?kartu=1", opsi)
                 .then((r) => (r.ok ? r.json() : { data: [] }))
                 .then((j) => setTersimpan(j.data || []))
-                .catch(() => setTersimpan([]));
+                .catch((e) => {
+                    if (!dibatalkan(e)) setTersimpan([]);
+                });
         }
         if (tab === "Riwayat" && riwayat === null) {
             fetch("/api/profil/riwayat?kartu=1", opsi)
                 .then((r) => (r.ok ? r.json() : { data: [] }))
                 .then((j) => setRiwayat(j.data || []))
-                .catch(() => setRiwayat([]));
+                .catch((e) => {
+                    if (!dibatalkan(e)) setRiwayat([]);
+                });
         }
         if (tab === "Aktor" && aktorDiikuti === null) {
             fetch("/api/profil/aktor", opsi)
@@ -139,10 +167,16 @@ export default function ProfilPage() {
                     setAktorDiikuti(j.diikuti || []);
                     setAktorPopuler(j.populer || []);
                 })
-                .catch(() => setAktorDiikuti([]));
+                .catch((e) => {
+                    if (!dibatalkan(e)) setAktorDiikuti([]);
+                });
         }
         return () => ac.abort();
-    }, [tab, perluMigrasi, tersimpan, riwayat, aktorDiikuti]);
+        // Ketiga daftar sengaja TIDAK masuk dependensi — di sini perannya
+        // penjaga, bukan pemicu. Memasukkannya berarti setiap pemuatan yang
+        // berhasil membatalkan permintaan tab lain yang sedang berjalan.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, perluMigrasi]);
 
     const simpanPreferensi = useCallback(async (patch: Partial<Preferensi>) => {
         try {
@@ -276,15 +310,48 @@ export default function ProfilPage() {
                                     Satu langkah lagi
                                 </h2>
                                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-amber-900/80 dark:text-amber-200/70">
-                                    Tabel penyimpanan profil belum ada di database. Buka{" "}
-                                    <strong>Supabase Dashboard → SQL Editor</strong>, tempelkan seluruh isi
-                                    berkas berikut, lalu jalankan:
+                                    Tabel penyimpanan profil belum ada di database. Jalankan berkas
+                                    migrasi berikut dari repositori, berurutan:
                                 </p>
-                                <code className="mt-4 block rounded-xl bg-amber-100 dark:bg-amber-500/10 px-4 py-3 text-[13px] font-mono text-amber-900 dark:text-amber-200 overflow-x-auto">
-                                    supabase/migrations/0001_profil_pengguna.sql
-                                </code>
-                                <p className="mt-4 text-xs text-amber-800/70 dark:text-amber-200/50">
-                                    Setelah dijalankan, muat ulang halaman ini. Fitur lain tetap berjalan
+
+                                {/* Ditulis sebagai daftar berlabel "berkas", BUKAN blok kode.
+                                    Versi lama menampilkan path di dalam <code> monospace —
+                                    tampilannya persis perintah siap salin, dan memang pernah
+                                    tersalin apa adanya ke SQL Editor lalu ditolak Postgres
+                                    dengan `syntax error at or near "supabase"`. Yang harus
+                                    disalin adalah ISI berkasnya, dan kalimat di bawah kini
+                                    menyebutkan itu secara eksplisit. */}
+                                <ol className="mt-4 space-y-1.5">
+                                    {[
+                                        ["0001_profil_pengguna.sql", "tabel profil"],
+                                        ["0002_perbaikan_hak_metrik.sql", "penghitung dilihat"],
+                                        ["0004_app_likes_dan_hak_akses.sql", "tombol suka + hak akses"],
+                                        ["0005_gambar_klaster.sql", "cache gambar kartu"],
+                                    ].map(([berkas, guna], i) => (
+                                        <li
+                                            key={berkas}
+                                            className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-amber-900 dark:text-amber-200"
+                                        >
+                                            <span className="font-black tabular-nums opacity-50">{i + 1}.</span>
+                                            <span className="font-bold">
+                                                supabase/migrations/{berkas}
+                                            </span>
+                                            <span className="text-[11px] text-amber-800/60 dark:text-amber-200/45">
+                                                — {guna}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ol>
+
+                                <p className="mt-5 max-w-2xl text-sm leading-relaxed text-amber-900/80 dark:text-amber-200/70">
+                                    Buka tiap berkas di editor, salin <strong>seluruh isinya</strong>{" "}
+                                    (bukan nama berkasnya), lalu tempel dan jalankan di{" "}
+                                    <strong>Supabase Dashboard → SQL Editor</strong>. Semuanya aman
+                                    dijalankan berulang.
+                                </p>
+
+                                <p className="mt-3 text-xs text-amber-800/70 dark:text-amber-200/50">
+                                    Setelah selesai, muat ulang halaman ini. Fitur lain tetap berjalan
                                     normal tanpa migrasi ini.
                                 </p>
                             </div>
@@ -493,13 +560,20 @@ export default function ProfilPage() {
                                                     </div>
                                                 </BarisSetelan>
 
+                                                {/* Sakelar ini sebelumnya tampil menyala biru, padahal
+                                                    pengiriman email memang belum ada — pengguna wajar
+                                                    mengira ia sudah berlangganan sesuatu. Selama
+                                                    fiturnya belum jalan, sakelarnya dinonaktifkan dan
+                                                    diberi penanda, bukan dibiarkan tampak berfungsi. */}
                                                 <BarisSetelan
                                                     judul="Ringkasan harian lewat email"
-                                                    keterangan="Preferensi tersimpan. Pengiriman email belum aktif."
+                                                    lencana="Belum tersedia"
+                                                    keterangan="Akan hadir setelah pengiriman email disiapkan."
                                                 >
                                                     <Sakelar
-                                                        aktif={Boolean(preferensi?.digest_harian)}
-                                                        onChange={(v) => simpanPreferensi({ digest_harian: v })}
+                                                        aktif={false}
+                                                        nonaktif
+                                                        onChange={() => {}}
                                                     />
                                                 </BarisSetelan>
 
@@ -610,16 +684,26 @@ function KartuAktor({
 function BarisSetelan({
     judul,
     keterangan,
+    lencana,
     children,
 }: {
     judul: string;
     keterangan: string;
+    /** Penanda kecil di samping judul, mis. untuk fitur yang belum berjalan. */
+    lencana?: string;
     children: React.ReactNode;
 }) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] px-5 py-4">
             <div className="min-w-0">
-                <p className="text-sm font-bold">{judul}</p>
+                <p className="flex flex-wrap items-center gap-2 text-sm font-bold">
+                    {judul}
+                    {lencana && (
+                        <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-400">
+                            {lencana}
+                        </span>
+                    )}
+                </p>
                 <p className="mt-0.5 text-xs text-gray-400 dark:text-white/35">{keterangan}</p>
             </div>
             {children}
@@ -627,20 +711,40 @@ function BarisSetelan({
     );
 }
 
-function Sakelar({ aktif, onChange }: { aktif: boolean; onChange: (v: boolean) => void }) {
+function Sakelar({
+    aktif,
+    onChange,
+    nonaktif = false,
+}: {
+    aktif: boolean;
+    onChange: (v: boolean) => void;
+    /** Sakelar yang fiturnya memang belum berjalan — lihat catatan di tab Setelan. */
+    nonaktif?: boolean;
+}) {
     return (
         <button
+            type="button"
             role="switch"
             aria-checked={aktif}
+            disabled={nonaktif}
             onClick={() => onChange(!aktif)}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                aktif ? "bg-blue-600" : "bg-gray-300 dark:bg-white/15"
+            className={`relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#05051a] ${
+                nonaktif
+                    ? "cursor-not-allowed bg-gray-200 dark:bg-white/10"
+                    : aktif
+                        ? "bg-blue-600"
+                        : "bg-gray-300 dark:bg-white/15"
             }`}
         >
+            {/* `left-0.5` WAJIB ada. Tanpa properti left, elemen absolut memakai
+                posisi statisnya — dan `text-align: center` bawaan <button> membuat
+                posisi itu jatuh di tengah track, bukan di tepi kiri. Akibatnya
+                knob mulai dari 12px lalu digeser lagi, sehingga menonjol keluar
+                dari track saat menyala dan berhenti di tengah saat mati. */}
             <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                    aktif ? "translate-x-[22px]" : "translate-x-0.5"
-                }`}
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full shadow transition-transform duration-200 ${
+                    nonaktif ? "bg-gray-400 dark:bg-white/30" : "bg-white"
+                } ${aktif ? "translate-x-5" : "translate-x-0"}`}
             />
         </button>
     );

@@ -48,9 +48,20 @@ type Entri = { url: string | null; at: number };
 
 const memori = new Map<number, Entri>();
 
-// Dimatikan otomatis bila tabel cache belum ada, agar tidak membanjiri log
-// dengan galat yang sama untuk setiap klaster.
-let cacheDbAktif = true;
+// Cache database dinonaktifkan SEMENTARA bila tabelnya belum ada atau haknya
+// belum diberikan — supaya log tidak dibanjiri galat yang sama untuk setiap
+// klaster, tanpa membuat gambar berhenti tampil.
+//
+// Sengaja berupa tenggat, bukan sakelar sekali-mati. Versi sebelumnya memakai
+// boolean permanen, dan itu terbukti menjebak: begitu migrasi 0005 dijalankan,
+// proses yang sedang hidup tetap melewati cache sampai server di-restart —
+// di produksi artinya sampai deploy berikutnya, padahal databasenya sudah benar.
+const JEDA_COBA_LAGI_MS = 10 * 60 * 1000;
+let cacheDbMatiHingga = 0;
+
+function cacheDbAktif(): boolean {
+  return Date.now() >= cacheDbMatiHingga;
+}
 
 function masihSegar(e: Entri): boolean {
   const umur = Date.now() - e.at;
@@ -159,7 +170,7 @@ async function scrapeSatu(url: string): Promise<string | null> {
 // ---------------------------------------------------------------------
 async function bacaCacheDb(ids: number[]): Promise<Map<number, Entri>> {
     const peta = new Map<number, Entri>();
-    if (!cacheDbAktif || !isSupabaseConfigured || !ids.length) return peta;
+    if (!cacheDbAktif() || !isSupabaseConfigured || !ids.length) return peta;
 
     const { data, error } = await supabase
         .from(TABEL)
@@ -182,7 +193,7 @@ async function bacaCacheDb(ids: number[]): Promise<Map<number, Entri>> {
 }
 
 async function tulisCacheDb(baris: { id_cluster: number; url_gambar: string | null; url_sumber: string | null }[]) {
-    if (!cacheDbAktif || !isSupabaseConfigured || !baris.length) return;
+    if (!cacheDbAktif() || !isSupabaseConfigured || !baris.length) return;
 
     const { error } = await supabase
         .from(TABEL)
@@ -198,10 +209,11 @@ function matikanCacheDb(error: unknown) {
     const { code: kode, message } = (error || {}) as { code?: string; message?: string };
     // PGRST205 = tabel belum ada, 42501 = service-role belum diberi hak.
     if (kode === "PGRST205" || kode === "42501") {
-        cacheDbAktif = false;
+        cacheDbMatiHingga = Date.now() + JEDA_COBA_LAGI_MS;
         console.warn(
-            `[gambar] Cache database dimatikan (${kode}): jalankan migrasi 0005_gambar_klaster.sql. ` +
-            `Gambar tetap tampil, tapi hasil scraping hilang setiap server restart.`,
+            `[gambar] Cache database dilewati selama ${JEDA_COBA_LAGI_MS / 60000} menit (${kode}): ` +
+            `jalankan migrasi 0005_gambar_klaster.sql. Gambar tetap tampil, tapi hasil scraping ` +
+            `belum tersimpan. Setelah migrasi dijalankan cache aktif sendiri, tanpa restart.`,
         );
         return;
     }
