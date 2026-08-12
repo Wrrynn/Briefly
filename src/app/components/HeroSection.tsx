@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import NewsCard from "./NewsCard";
-import KerangkaKartu from "./KerangkaKartu";
+import DaftarTrending from "./DaftarTrending";
 
 interface HeroProps {
     trendingNews?: any[];
@@ -57,22 +56,7 @@ export default function HeroSection({ trendingNews, loadingTrending, searchActiv
                                 <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/5"></div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {loadingTrending ? (
-                                    [1, 2, 3].map((i) => <KerangkaKartu key={i} />)
-                                ) : (trendingNews || []).length > 0 ? (
-                                    // Urutan array SUDAH urutan peringkat hasil skor
-                                    // di /api/trending, jadi indeks + 1 adalah
-                                    // peringkatnya — tidak perlu dikirim terpisah.
-                                    (trendingNews || []).slice(0, 3).map((item, index) => (
-                                        <NewsCard key={item.id || index} data={item} peringkat={index + 1} />
-                                    ))
-                                ) : (
-                                    <div className="col-span-3 text-center py-8 text-gray-400 dark:text-white/30 text-sm tracking-widest uppercase font-bold">
-                                        Belum ada data trending
-                                    </div>
-                                )}
-                            </div>
+                            <DaftarTrending data={trendingNews} memuat={loadingTrending} />
                         </motion.div>
                     )}
                 </div>
