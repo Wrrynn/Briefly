@@ -77,9 +77,12 @@ function Baris({ item, peringkat }: { item: Item; peringkat: number }) {
                 {peringkat}
             </span>
 
+            {/* Baris pertama berada di layar awal dan terdeteksi Next sebagai
+                elemen LCP, jadi ia dimuat tanpa lazy-load. Sisanya tetap lazy. */}
             <GambarBerita
                 idKlaster={idKlaster}
                 sizes="96px"
+                priority={peringkat === 1}
                 className="h-14 w-20 shrink-0 rounded-xl sm:h-16 sm:w-24"
             />
 
