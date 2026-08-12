@@ -57,10 +57,18 @@ export default function Landing() {
     <main className="min-h-screen bg-[#05051a] text-white font-sans overflow-x-hidden">
       {/* ===== NAVBAR ===== */}
       <nav className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <Image src="/images/favicon-512.png" alt="Briefly" width={32} height={32} className="h-8 w-8" priority />
-          <span className="text-sm font-black uppercase tracking-[0.3em]">Briefly</span>
-        </div>
+        {/* Varian latar-gelap dipakai LANGSUNG, bukan lewat LogoBriefly:
+            halaman ini selalu berlatar navy, sementara class `dark` bisa saja
+            tidak ada — pengunjung yang memilih tema terang lalu membuka Landing.
+            Wordmark navy akan tenggelam di latar navy. */}
+        <Image
+          src="/images/briefly-wordmark-dark@2x.png"
+          alt="Briefly"
+          width={632}
+          height={236}
+          className="h-8 w-auto"
+          priority
+        />
         <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/login" className="rounded-xl px-4 py-2 text-sm font-bold text-white/70 transition hover:text-white">
             Masuk

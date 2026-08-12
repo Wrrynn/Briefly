@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import NewsHeader from "@/app/components/detail/NewsHeader";
 import NewsMeta from "@/app/components/detail/NewsMeta";
@@ -15,6 +14,7 @@ import Linimasa from "@/app/components/detail/Linimasa";
 import FramingComparison from "@/app/components/detail/FramingComparison";
 import BookmarkButton from "@/app/components/BookmarkButton";
 import GambarBerita from "@/app/components/GambarBerita";
+import LogoBriefly from "@/app/components/LogoBriefly";
 import TombolTema from "@/app/components/TombolTema";
 import Footer from "@/app/components/Footer";
 import type { NewsItem } from "@/app/data/mockNews";
@@ -262,16 +262,11 @@ export default function NewsDetailPage() {
             {/* NAVBAR */}
             <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-[#05051a]/80 backdrop-blur-2xl transition-colors duration-500">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <Link href="/" className="group flex items-center gap-3 text-[11px] font-black tracking-[0.4em] uppercase text-gray-900 dark:text-white/80 hover:text-blue-600 dark:hover:text-white transition-colors duration-200">
-                        <Image
-                            src="/images/favicon-512.png"
-                            alt="Logo Briefly"
-                            width={32}
-                            height={32}
-                            priority
-                            className="h-8 w-8 transition-transform group-hover:scale-105"
+                    <Link href="/" className="group flex items-center">
+                        <LogoBriefly
+                            prioritas
+                            className="h-8 w-auto transition-transform group-hover:scale-105"
                         />
-                        <span>Briefly</span>
                     </Link>
 
                     <div className="flex items-center gap-5">
