@@ -203,13 +203,17 @@ export default function SiteHeader({
                     href="/"
                     className="group flex shrink-0 items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 dark:focus-visible:ring-offset-[#05051a]"
                 >
+                    {/* Bentuk kotak-membulat dan warnanya sudah menyatu di dalam
+                        berkasnya, jadi tanpa rounded/ring tambahan — cincin akan
+                        digambar mengikuti kotak pembatas dan terlihat menyilang di
+                        sudut yang sebenarnya transparan. */}
                     <Image
-                        src="/images/Briefly-logo.png"
+                        src="/images/favicon-512.png"
                         alt="Logo Briefly"
                         width={32}
                         height={32}
                         priority
-                        className="h-8 w-8 rounded-lg shadow-sm ring-1 ring-black/5 transition-transform group-hover:scale-105 dark:ring-white/10"
+                        className="h-8 w-8 transition-transform group-hover:scale-105"
                     />
                     <span className="hidden text-[11px] font-black uppercase tracking-[0.3em] text-gray-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 sm:inline">
                         Briefly

@@ -235,12 +235,12 @@ export default function ProfilPage() {
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-3">
                         <Image
-                            src="/images/Briefly-logo.png"
+                            src="/images/favicon-512.png"
                             alt="Logo Briefly"
                             width={32}
                             height={32}
                             priority
-                            className="h-8 w-8 rounded-lg ring-1 ring-black/5 dark:ring-white/10"
+                            className="h-8 w-8"
                         />
                         <span className="text-[11px] font-black tracking-[0.4em] uppercase group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             Briefly

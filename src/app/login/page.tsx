@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -64,8 +65,20 @@ function LoginForm() {
   return (
     <AuthShell>
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-black tracking-tight text-white">Briefly</h1>
-        <p className="mt-2 text-sm text-white/45">Masuk untuk melanjutkan</p>
+        {/* Wordmark di dalam <h1> supaya tetap terbaca sebagai judul halaman;
+            nama mereknya tersampaikan lewat alt. Latar auth selalu gelap, jadi
+            varian latar-gelap saja yang dipakai. */}
+        <h1>
+          <Image
+            src="/images/briefly-wordmark-dark@2x.png"
+            alt="Briefly"
+            width={632}
+            height={236}
+            priority
+            className="mx-auto h-11 w-auto"
+          />
+        </h1>
+        <p className="mt-3 text-sm text-white/45">Masuk untuk melanjutkan</p>
       </div>
 
       <GlassCard>

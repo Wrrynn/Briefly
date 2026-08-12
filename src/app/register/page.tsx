@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   AuthShell,
@@ -76,8 +77,18 @@ export default function RegisterPage() {
   return (
     <AuthShell>
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-black tracking-tight text-white">Briefly</h1>
-        <p className="mt-2 text-sm text-white/45">Buat akun baru</p>
+        {/* Lihat catatan di halaman masuk: wordmark di dalam <h1>. */}
+        <h1>
+          <Image
+            src="/images/briefly-wordmark-dark@2x.png"
+            alt="Briefly"
+            width={632}
+            height={236}
+            priority
+            className="mx-auto h-11 w-auto"
+          />
+        </h1>
+        <p className="mt-3 text-sm text-white/45">Buat akun baru</p>
       </div>
 
       <GlassCard>

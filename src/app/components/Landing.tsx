@@ -58,7 +58,7 @@ export default function Landing() {
       {/* ===== NAVBAR ===== */}
       <nav className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <Image src="/images/Briefly-logo.png" alt="Briefly" width={34} height={34} className="h-8 w-8 rounded-xl ring-1 ring-white/10" priority />
+          <Image src="/images/favicon-512.png" alt="Briefly" width={32} height={32} className="h-8 w-8" priority />
           <span className="text-sm font-black uppercase tracking-[0.3em]">Briefly</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">

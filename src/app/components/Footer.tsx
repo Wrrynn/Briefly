@@ -68,16 +68,19 @@ export default function Footer() {
                             href="/"
                             className="group inline-flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05051a]"
                         >
+                            {/* Wordmark, bukan ikon + tulisan "BRIEFLY": ruang di
+                                footer lega sehingga wordmark terbaca utuh, dan ia
+                                sudah memuat nama mereknya sendiri.
+
+                                Dipakai varian latar-gelap saja karena footer selalu
+                                hitam (bg-black), bukan mengikuti tema. */}
                             <Image
-                                src="/images/Briefly-logo.png"
-                                alt="Logo Briefly"
-                                width={40}
-                                height={40}
-                                className="h-10 w-10 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-105"
+                                src="/images/briefly-wordmark-dark@2x.png"
+                                alt="Briefly"
+                                width={632}
+                                height={236}
+                                className="h-9 w-auto transition-transform group-hover:scale-105"
                             />
-                            <span className="text-base font-black tracking-[0.3em] uppercase text-white">
-                                Briefly
-                            </span>
                         </Link>
                         <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/50 font-medium">
                             Platform intelijen berita berbasis AI: ringkasan, analisis sentimen,

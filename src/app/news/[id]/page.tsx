@@ -264,12 +264,12 @@ export default function NewsDetailPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <Link href="/" className="group flex items-center gap-3 text-[11px] font-black tracking-[0.4em] uppercase text-gray-900 dark:text-white/80 hover:text-blue-600 dark:hover:text-white transition-colors duration-200">
                         <Image
-                            src="/images/Briefly-logo.png"
+                            src="/images/favicon-512.png"
                             alt="Logo Briefly"
                             width={32}
                             height={32}
                             priority
-                            className="h-8 w-8 rounded-lg shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-105"
+                            className="h-8 w-8 transition-transform group-hover:scale-105"
                         />
                         <span>Briefly</span>
                     </Link>
